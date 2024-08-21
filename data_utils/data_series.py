@@ -20,6 +20,7 @@ from typing import Union, Self
 # 项目模块
 from easy_datetime.timestamp import TimeStamp, TimeLine
 from easy_utils.number_utils.number_utils import EasyFloat
+from data_utils.series_trans_utils import SeriesTransRec, ColumnTransRec, DataTransformator, MinMax
 
 # 外部模块
 import numpy
@@ -75,7 +76,7 @@ class DataSeries(object):
             self.data, self.key_list, self.width, self.x = element_from_dict(**kwargs)
         else:
             self.data, self.key_list, self.width, self.x = element_from_none
-        self.transform_record = []
+        self.transform_record = SeriesTransRec([])
 
     def __len__(self):
         return len(self.x)
@@ -347,7 +348,7 @@ class DataSeries(object):
         new_array = numpy.array([])
         for i, k in enumerate(self.key_list):
             new_temp_array = numpy.array([
-                method(self.data[k][bin_index], *args, **kwargs) if len(bin_index) > 0 else 0
+                method(self.data[k][bin_index], *args, **kwargs) if len(bin_index) > 0 else numpy.nan
                 for bin_index in bin_index_list
             ])
             if i == 0:
@@ -372,10 +373,47 @@ class DataSeries(object):
 
         return self.bin_method(bin_list, method, *args, **kwargs)
 
+    def data_trans(self, method: DataTransformator = MinMax, *args, **kwargs) -> Self:
+        """
+        数据变形
+        """
+        self.transform_record.his.append([])
+        array = self.get_array()
+        new_array = numpy.array([])
+        for i, k in enumerate(self.key_list):
+            y, inf, para = method.f(array[:, i], *args, **kwargs)
+            if i == 0:
+                new_array = numpy.concatenate((new_array, y))
+            else:
+                new_array = numpy.column_stack((new_array, y))
+            rec = ColumnTransRec(method=inf, dim=k, param=para)
+            self.transform_record.his[-1].append(rec)
+
+        ts = self._comb_by_key_and_value(self.key_list, new_array)
+        ts.transform_record = copy.deepcopy(self.transform_record)
+        return ts
+
+    def data_re_trans(self, rollback_num: int = 1):
+        """
+        数据逆变形
+        """
+        s = copy.deepcopy(self)
+        for _ in range(min(len(self.transform_record.his), rollback_num)):
+            rec_list: list[ColumnTransRec] = self.transform_record.his[-1]
+            for i, r in enumerate(rec_list):
+                k = r.dim
+                method = r.method
+                param = r.param
+                s.data[k] = method(s.data[k], *param)
+            del s.transform_record.his[-1]
+        return s
+
 
 if __name__ == "__main__":
     data = numpy.random.randint(1, 1000, 90000).reshape(3, -1)
     s = DataSeries(*data)
     print(s.x)
     ss = s.aggregate(100, align=True, align_domain=[0, 20000])
-    print(ss)
+    # print(ss)
+    print(ss.data_trans())
+    # print(ss.data_trans().data_re_trans())
