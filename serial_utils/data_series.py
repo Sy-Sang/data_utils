@@ -20,7 +20,7 @@ from typing import Union, Self
 # 项目模块
 from easy_datetime.timestamp import TimeStamp, TimeLine
 from easy_utils.number_utils.number_utils import EasyFloat
-from data_utils.series_trans_utils import SeriesTransRec, ColumnTransRec, DataTransformator, MinMax
+from series_trans_utils import SeriesTransRec, ColumnTransRec, DataTransformator, MinMax
 
 # 外部模块
 import numpy
@@ -406,6 +406,23 @@ class DataSeries(object):
                 param = r.param
                 s.data[k] = method(s.data[k], *param)
             del s.transform_record.his[-1]
+        return s
+
+    def column_entangled(self, f: callable, *args: str, **kwargs) -> Self:
+        """
+        组间相干
+        """
+        entangled_column_name = f"{'_'.join(item for item in args)}"
+        entangled_data = []
+        for i in range(len(self)):
+            entangled_data.append(
+                f(*[self.data[a][i] for a in args], **kwargs)
+            )
+
+        array = self.get_array()
+        array = numpy.column_stack((array, entangled_data))
+        s = self._comb_by_key_and_value(self.key_list + [entangled_column_name], array)
+        s.transform_record = copy.deepcopy(self.transform_record)
         return s
 
 

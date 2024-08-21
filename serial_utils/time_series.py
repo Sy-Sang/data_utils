@@ -20,7 +20,7 @@ from typing import Union, Self
 # 项目模块
 from easy_datetime.timestamp import TimeStamp, TimeLine
 from data_series import DataSeries
-from data_utils.series_trans_utils import ColumnTransRec, DataTransformator, MinMax
+from series_trans_utils import ColumnTransRec, DataTransformator, MinMax
 
 # 外部模块
 import numpy
