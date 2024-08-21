@@ -30,11 +30,6 @@ from scipy.special import betaincinv, beta, iv, gamma, erfinv, erfcinv, betainc
 
 
 # 代码块
-#
-# def curve_wrapper(f:callable):
-#     def wrapper(instance, *args, **kwargs):
-#
-#
 
 class distribution(ABC):
     """
@@ -144,4 +139,4 @@ class NormalDistribution(distribution):
 
 if __name__ == "__main__":
     nd = NormalDistribution(0, 1)
-    print(nd.cdf(first=0.1, end=0.9, step=0.1))
+    print(nd.cdf(first=0.1, end=0.9))
