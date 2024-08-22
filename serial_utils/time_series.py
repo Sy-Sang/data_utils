@@ -344,7 +344,7 @@ class TimeSeries(DataSeries):
 
         return self.bin_method(bin_list, method, *args, **kwargs)
 
-    def data_trans(self, method: DataTransformator = MinMax, *args, **kwargs):
+    def data_trans(self, method: DataTransformator = MinMax, *args, **kwargs) -> Self:
         self.transform_record.his.append([])
         array = self.get_array()
         new_array = numpy.array([])
@@ -362,7 +362,7 @@ class TimeSeries(DataSeries):
         ts.transform_record = copy.deepcopy(self.transform_record)
         return ts
 
-    def data_re_trans(self, rollback_num: int = 1):
+    def data_re_trans(self, rollback_num: int = 1) -> Self:
         return super().data_re_trans(rollback_num)
 
 
@@ -371,6 +371,6 @@ if __name__ == "__main__":
     data = numpy.arange(0, len(drange) * 3).reshape(3, -1)
     ts = TimeSeries(drange, *data)
 
-    tss = ts.aggregate(["day", 1], align=True, align_domain=['2021-1-1', '2025-1-1']).data_trans().data_re_trans()
+    tss = ts.aggregate(["month", 1], align=True, align_domain=['2021-1-1', '2025-1-1']).data_trans().data_re_trans()
 
-    print(tss)
+    print(tss.time_stamp)
