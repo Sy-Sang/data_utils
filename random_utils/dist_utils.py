@@ -174,7 +174,7 @@ def correlated_rvf(dist_list: list, num: int = 100) -> numpy.ndarray:
     for i, a in enumerate(dist_list):
         d = nt(a[0], a[1])
         if i == 0:
-            r = d.dist.rvf(rn)
+            r = numpy.sort(d.dist.rvf(rn))
             array = numpy.concatenate((array, r))
         else:
             l = int(rn * abs(d.corr))

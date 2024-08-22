@@ -19,7 +19,8 @@ from typing import Union, Self
 from collections import namedtuple
 
 # 项目模块
-from dist_utils import ABCDistribution, NormalDistribution
+from dist_utils import ABCDistribution
+from basic_distributions import NormalDistribution
 from easy_utils.number_utils import calculus_utils, number_utils
 
 # 外部模块
