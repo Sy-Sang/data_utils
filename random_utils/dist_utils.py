@@ -164,6 +164,40 @@ class ABCDistribution(ABC):
         pass
 
 
+def correlated_rvf(dist_list: list, num: int = 100) -> numpy.ndarray:
+    """
+    相关的随机数
+    """
+    rn = max(num, 100)
+    array = numpy.array([])
+    nt = namedtuple("cd", ["dist", "corr"])
+    for i, a in enumerate(dist_list):
+        d = nt(a[0], a[1])
+        if i == 0:
+            r = d.dist.rvf(rn)
+            array = numpy.concatenate((array, r))
+        else:
+            l = int(rn * abs(d.corr))
+            if l != 0:
+                rx = numpy.random.uniform(
+                    0 + numpy.finfo(float).eps,
+                    1 - numpy.finfo(float).eps,
+                    l
+                )
+                if d.corr >= 0:
+                    rx = numpy.sort(rx)
+                elif d.corr < 0:
+                    rx = numpy.sort(rx)[::-1]
+                r0 = d.dist.ppf(*rx)[:, 1]
+            else:
+                r0 = numpy.array([])
+            r1 = d.dist.rvf(rn - l)
+            r = numpy.concatenate((r0, r1))
+            array = numpy.column_stack((array, r))
+
+    numpy.random.shuffle(array)
+    return array[:num].T
+
+
 if __name__ == "__main__":
     pass
-

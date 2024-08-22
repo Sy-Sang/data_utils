@@ -20,7 +20,7 @@ from collections import namedtuple
 import math
 
 # 项目模块
-from dist_utils import ABCDistribution
+from dist_utils import ABCDistribution, correlated_rvf
 
 # 外部模块
 import numpy
@@ -87,15 +87,24 @@ class LogNormalDistribution(ABCDistribution):
 
 
 if __name__ == "__main__":
-    from easy_utils.number_utils import calculus_utils, number_utils
-
-    nd = LogNormalDistribution(0, 1)
-    m = calculus_utils.simpsons_integrate
-    n = 100
-    print(nd.pdf(first=0 + numpy.finfo(float).eps, end=1 - numpy.finfo(float).eps, step=0.01).tolist())
-    print(nd.n_mean(m, num=n))
-    print(nd.n_std(m, num=n))
-    print(nd.n_skewness(m, num=n))
-    print(nd.n_kurtosis(m, num=n))
-    print(nd.mean())
-    print(nd.std())
+    # from easy_utils.number_utils import calculus_utils, number_utils
+    #
+    # nd = LogNormalDistribution(0, 1)
+    # m = calculus_utils.simpsons_integrate
+    # n = 100
+    # print(nd.pdf(first=0 + numpy.finfo(float).eps, end=1 - numpy.finfo(float).eps, step=0.01).tolist())
+    # print(nd.n_mean(m, num=n))
+    # print(nd.n_std(m, num=n))
+    # print(nd.n_skewness(m, num=n))
+    # print(nd.n_kurtosis(m, num=n))
+    # print(nd.mean())
+    # print(nd.std())
+    print(correlated_rvf(
+        [
+            [NormalDistribution(0, 1), 1],
+            [NormalDistribution(0, 1), 0.5],
+            [LogNormalDistribution(0, 1), -0.5],
+            [NormalDistribution(0, 1), 0]
+        ],
+        50
+    ).tolist())
