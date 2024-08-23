@@ -19,6 +19,9 @@ from typing import Union, Self
 from abc import ABC, abstractmethod
 from collections import namedtuple
 
+from pip._internal.distributions import AbstractDistribution
+from sympy.diffgeom import rn
+
 # 项目模块
 from easy_utils.number_utils import calculus_utils, number_utils
 from easy_utils.obj_utils.sequence_utils import flatten
@@ -170,7 +173,8 @@ def correlated_rvf(dist_list: list, num: int = 100) -> numpy.ndarray:
     """
     rn = max(num, 100)
     array = numpy.array([])
-    nt = namedtuple("cd", ["dist", "corr"])
+    nt = namedtuple("nt", ["dist", "corr"])
+    nt.__annotations__ = {"dist": AbstractDistribution, "corr": float}
     for i, a in enumerate(dist_list):
         d = nt(a[0], a[1])
         if i == 0:
@@ -197,6 +201,38 @@ def correlated_rvf(dist_list: list, num: int = 100) -> numpy.ndarray:
 
     numpy.random.shuffle(array)
     return array[:num].T
+
+
+def correlated_random_number(*args, num: int = 100):
+    """
+    生成满足指定概率分布并具备相关性的随机数
+    """
+
+    def corrf(x: int, xlist: numpy.ndarray, ylist: numpy.ndarray, target: float) -> numpy.ndarray:
+        nx = numpy.concatenate((xlist[:x], xlist[x:]))
+        return abs(numpy.corrcoef(nx, ylist) - target)
+
+    def newtown_corrf(xlist: numpy.ndarray, ylist: numpy.ndarray, target: float):
+        return calculus_utils.newton_method(
+            corrf, 50, 0.1, 100, 1,
+            xlist=xlist, ylist=ylist, target=target
+        )
+
+    n = max(num, 100)
+    array = numpy.arange(n)
+    nt = namedtuple("nt", ["dist", "corr"])
+    nt.__annotations__ = {"dist": AbstractDistribution, "corr": float}
+    for i, a in enumerate(args):
+        d = nt(a[0], a[1])
+        if d.corr > 0:
+            rx = number_utils.EasyFloat.np_finterval(-1 * d.corr, d.corr, n) + d.dist.rvf(n)
+        elif d.corr < 0:
+            rx = number_utils.EasyFloat.np_finterval(-1 * d.corr, d.corr, n) + d.dist.rvf(n)
+        else:
+            rx = d.dist.rvf(n)
+        array = numpy.column_stack((array, rx))
+    numpy.random.shuffle(array)
+    return array[:, 1:][:num].T
 
 
 if __name__ == "__main__":

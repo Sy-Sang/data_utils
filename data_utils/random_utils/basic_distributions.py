@@ -20,7 +20,7 @@ from collections import namedtuple
 import math
 
 # 项目模块
-from dist_utils import ABCDistribution, correlated_rvf
+from dist_utils import ABCDistribution, correlated_rvf, correlated_random_number
 
 # 外部模块
 import numpy
@@ -99,12 +99,11 @@ if __name__ == "__main__":
     # print(nd.n_kurtosis(m, num=n))
     # print(nd.mean())
     # print(nd.std())
-    print(correlated_rvf(
-        [
-            [NormalDistribution(0, 1), 1],
-            [NormalDistribution(0, 1), 0.5],
-            [LogNormalDistribution(0, 1), -0.5],
-            [NormalDistribution(0, 1), 0]
-        ],
-        50
+
+    print(correlated_random_number(
+        [NormalDistribution(0, 1), 0.9],
+        [NormalDistribution(0, 1), 0.5],
+        [LogNormalDistribution(0, 1), -0.5],
+        [NormalDistribution(0, 1), 0],
+        num=50
     ).tolist())
