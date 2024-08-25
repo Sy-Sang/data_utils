@@ -19,41 +19,43 @@ from typing import Union, Self
 from abc import ABC, abstractmethod
 from collections import namedtuple
 
-from pip._internal.distributions import AbstractDistribution
-from sympy.diffgeom import rn
-
 # 项目模块
 from easy_utils.number_utils import calculus_utils, number_utils
 from easy_utils.obj_utils.sequence_utils import flatten
+from data_utils.serial_utils.series_trans_utils import MinMax
 
 # 外部模块
 import numpy
 
-
 # 代码块
+
+
+curve = namedtuple('curve', ['x', 'y'])
+
 
 class ABCDistribution(ABC):
     """
     概率分布
     """
 
-    def _2d_curve(self, f: callable, *args, first, end, step, **kwargs) -> Union[float, numpy.ndarray]:
+    def _2d_curve(self, f: callable, *args, first, end, step) -> Union[float, curve]:
         """
         形成2维曲线
         """
         flatten_args = flatten(args)
         if len(flatten_args) == 1:
             return f(*flatten_args)
-        elif len(flatten_args) > 1:
-            return numpy.array([[fa, f(fa)] for fa in flatten_args])
         else:
-            if f.__name__ == '_ppf':
-                xarray = number_utils.EasyFloat.frange(first, end, step, True)
-                return numpy.array([[x, f(x)] for x in xarray])
+            if len(flatten_args) > 1:
+                xarray = numpy.array(flatten_args)
             else:
-                xarray = number_utils.EasyFloat.frange(first, end, step, True)
-                yarray = numpy.array([self._ppf(x) for x in xarray])
-                return numpy.array([[y, f(y)] for y in yarray])
+                if f.__name__ == '_ppf':
+                    xarray = number_utils.EasyFloat.frange(first, end, step, True)
+                else:
+                    ppf_xarray = number_utils.EasyFloat.frange(first, end, step, True)
+                    xarray = numpy.array([self._ppf(x) for x in ppf_xarray])
+            c = curve(xarray, numpy.array([f(x) for x in xarray]))
+            return c
 
     @abstractmethod
     def _ppf(self, *args, **kwargs) -> float:
@@ -76,15 +78,15 @@ class ABCDistribution(ABC):
         """
         pass
 
-    def ppf(self, *args, first=0.01, end=0.99, step=0.01, **kwargs):
+    def ppf(self, *args, first=0.01, end=0.99, step=0.01, **kwargs) -> Union[float, curve]:
         """ppf曲线"""
         return self._2d_curve(self._ppf, *args, first=first, end=end, step=step, **kwargs)
 
-    def pdf(self, *args, first=0.01, end=0.99, step=0.01, **kwargs):
+    def pdf(self, *args, first=0.01, end=0.99, step=0.01, **kwargs) -> Union[float, curve]:
         """pdf曲线"""
         return self._2d_curve(self._pdf, *args, first=first, end=end, step=step, **kwargs)
 
-    def cdf(self, *args, first=0.01, end=0.99, step=0.01, **kwargs):
+    def cdf(self, *args, first=0.01, end=0.99, step=0.01, **kwargs) -> Union[float, curve]:
         """cdf曲线"""
         return self._2d_curve(self._cdf, *args, first=first, end=end, step=step, **kwargs)
 
@@ -99,62 +101,7 @@ class ABCDistribution(ABC):
         n = max(100, num) * 2
         x_array = numpy.random.uniform(0 + numpy.finfo(float).eps, 1, size=n)
         random_array = self.ppf(x_array)
-        return random_array[:num][:, 1]
-
-    def n_mean(self, method: callable = calculus_utils.simpsons_integrate, first: float = 0 + numpy.finfo(float).eps,
-               end: float = 1 - numpy.finfo(float).eps,
-               num: int = 100) -> float:
-        """
-        数值方法计算概率分布期望
-        """
-
-        def f(x: float) -> float:
-            return x * self._pdf(x)
-
-        return method(f, self._ppf(first), self._ppf(end), num)
-
-    def n_std(self, method: callable = calculus_utils.simpsons_integrate, first: float = 0 + numpy.finfo(float).eps,
-              end: float = 1 - numpy.finfo(float).eps,
-              num: int = 100) -> float:
-        """
-        数值方法计算概率分布标准差
-        """
-        mean = self.n_mean(method, first, end, num)
-
-        def f(x: float) -> float:
-            return ((x - mean) ** 2) * self._pdf(x)
-
-        return method(f, self._ppf(first), self._ppf(end), num) ** 0.5
-
-    def n_skewness(self, method: callable = calculus_utils.simpsons_integrate,
-                   first: float = 0 + numpy.finfo(float).eps,
-                   end: float = 1 - numpy.finfo(float).eps,
-                   num: int = 100) -> float:
-        """
-        数值方法计算偏度
-        """
-        mean = self.n_mean(method, first, end, num)
-        std = self.n_std(method, first, end, num)
-
-        def f(x: float) -> float:
-            return self._pdf(x) * ((x - mean) / std) ** 3
-
-        return method(f, self._ppf(first), self._ppf(end), num)
-
-    def n_kurtosis(self, method: callable = calculus_utils.simpsons_integrate,
-                   first: float = 0 + numpy.finfo(float).eps,
-                   end: float = 1 - numpy.finfo(float).eps,
-                   num: int = 100):
-        """
-        数值方法计算峰度
-        """
-        mean = self.n_mean(method, first, end, num)
-        std = self.n_std(method, first, end, num)
-
-        def f(x: float) -> float:
-            return self._pdf(x) * ((x - mean) / std) ** 4
-
-        return method(f, self._ppf(first), self._ppf(end), num)
+        return random_array.y[:num]
 
     @abstractmethod
     def mean(self) -> float:
@@ -174,7 +121,7 @@ def correlated_rvf(dist_list: list, num: int = 100) -> numpy.ndarray:
     rn = max(num, 100)
     array = numpy.array([])
     nt = namedtuple("nt", ["dist", "corr"])
-    nt.__annotations__ = {"dist": AbstractDistribution, "corr": float}
+    nt.__annotations__ = {"dist": ABCDistribution, "corr": float}
     for i, a in enumerate(dist_list):
         d = nt(a[0], a[1])
         if i == 0:
@@ -192,7 +139,7 @@ def correlated_rvf(dist_list: list, num: int = 100) -> numpy.ndarray:
                     rx = numpy.sort(rx)
                 elif d.corr < 0:
                     rx = numpy.sort(rx)[::-1]
-                r0 = d.dist.ppf(*rx)[:, 1]
+                r0 = d.dist.ppf(*rx).y
             else:
                 r0 = numpy.array([])
             r1 = d.dist.rvf(rn - l)
@@ -203,36 +150,37 @@ def correlated_rvf(dist_list: list, num: int = 100) -> numpy.ndarray:
     return array[:num].T
 
 
-def correlated_random_number(*args, num: int = 100):
+def correlated_random_number(base_dist: ABCDistribution, num: int = 100, *args):
     """
     生成满足指定概率分布并具备相关性的随机数
     """
 
-    def corrf(x: int, xlist: numpy.ndarray, ylist: numpy.ndarray, target: float) -> numpy.ndarray:
-        nx = numpy.concatenate((xlist[:x], xlist[x:]))
-        return abs(numpy.corrcoef(nx, ylist) - target)
+    def noize_f(x: float) -> float:
+        return 0.274882 / (0.0892443 + abs(x)) ** 2.325384114212880
 
-    def newtown_corrf(xlist: numpy.ndarray, ylist: numpy.ndarray, target: float):
-        return calculus_utils.newton_method(
-            corrf, 50, 0.1, 100, 1,
-            xlist=xlist, ylist=ylist, target=target
-        )
+    eps = numpy.finfo(float).eps
 
     n = max(num, 100)
-    array = numpy.arange(n)
     nt = namedtuple("nt", ["dist", "corr"])
-    nt.__annotations__ = {"dist": AbstractDistribution, "corr": float}
+
+    base_quantile = numpy.random.uniform(0 + eps, 1 - eps, n)
+    array = base_dist.ppf(base_quantile).y
+
     for i, a in enumerate(args):
         d = nt(a[0], a[1])
-        if d.corr > 0:
-            rx = number_utils.EasyFloat.np_finterval(-1 * d.corr, d.corr, n) + d.dist.rvf(n)
-        elif d.corr < 0:
-            rx = number_utils.EasyFloat.np_finterval(-1 * d.corr, d.corr, n) + d.dist.rvf(n)
+        d.dist: ABCDistribution
+        d.corr: float
+        if d.corr != 0:
+            noize_size = noize_f(d.corr)
+            noize = numpy.random.uniform(0, noize_size, n)
+            noised = base_quantile + noize if d.corr > 0 else noize - base_quantile
+            noize_range = numpy.random.uniform(0 + eps, 1 - eps, n)
+            normalized_noised, _1, _2 = MinMax.f(noised, a=numpy.min(noize_range), b=numpy.max(noize_range))
+            array = numpy.column_stack((array, d.dist.ppf(normalized_noised).y))
         else:
-            rx = d.dist.rvf(n)
-        array = numpy.column_stack((array, rx))
-    numpy.random.shuffle(array)
-    return array[:, 1:][:num].T
+            array = numpy.column_stack((array, d.dist.rvf(n)))
+
+    return array[:num].T
 
 
 if __name__ == "__main__":

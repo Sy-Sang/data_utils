@@ -13,6 +13,7 @@ __copyright__ = ""
 
 # 系统模块
 import copy
+import decimal
 import pickle
 import json
 from typing import Union, Self
@@ -59,9 +60,9 @@ class DataTransformator:
 class MinMax(DataTransformator):
     @classmethod
     def f(cls, xlist: Union[list, tuple, numpy.ndarray],
-          a: float = 0,
-          b: float = 1,
-          eps: float = 0,
+          a: Union[float, int, decimal.Decimal, numpy.floating] = 0,
+          b: Union[float, int, decimal.Decimal, numpy.floating] = 1,
+          eps: Union[float, int, decimal.Decimal, numpy.floating] = 0,
           *args, **kwargs):
         xarray = numpy.array(xlist)
         if max(xarray) == min(xarray):
