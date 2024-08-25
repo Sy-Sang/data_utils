@@ -38,6 +38,11 @@ class ABCDistribution(ABC):
     概率分布
     """
 
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__()
+        self.args = args
+        self.kwargs = kwargs
+
     def _2d_curve(self, f: callable, *args, first, end, step) -> Union[float, curve]:
         """
         形成2维曲线
