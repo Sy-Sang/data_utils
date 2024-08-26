@@ -3,7 +3,7 @@
 
 __author__ = "Sy,Sang"
 __version__ = ""
-__license__ = "GUN"
+__license__ = "GPLv3"
 __maintainer__ = "Sy, Sang"
 __email__ = "martin9le@163.com"
 __status__ = "Development"

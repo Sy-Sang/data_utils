@@ -195,5 +195,5 @@ if __name__ == "__main__":
         100,
         [WeibullDistribution(2, 5), -0.5],
         [StudentTDistribution(v=3), 0.5],
-        [NormalDistribution(0,1), 0.8],
+        [NormalDistribution(0, 1), 0.8],
     ).tolist())
