@@ -29,6 +29,17 @@ import httpx
 
 # 代码块
 
+HistoricalRes = namedtuple('HistoricalRes', [
+    "longitude",
+    "latitude",
+    "generationtime_ms",
+    "utc_offset_seconds",
+    "timezone",
+    "timezone_abbreviation",
+    "elevation",
+    "hourly_units",
+    "hourly",
+])
 
 class HistoricalDim:
     """
@@ -72,7 +83,7 @@ class HistoricalDim:
     soil_moisture_100_to_255cm = "soil_moisture_100_to_255cm"
 
 
-def historical(lon: float, lat: float, start: str, end: str, *args) -> dict:
+def historical(lon: float, lat: float, start: str, end: str, *args) -> HistoricalRes:
     """
 
     :param lon:
@@ -94,10 +105,33 @@ def historical(lon: float, lat: float, start: str, end: str, *args) -> dict:
     res = httpx.get(
         request_url
     )
-    return json.loads(res.text)
+    rdata = json.loads(res.text)
+    rnametuple = HistoricalRes(
+        rdata["longitude"],
+        rdata["latitude"],
+        rdata["generationtime_ms"],
+        rdata["utc_offset_seconds"],
+        rdata["timezone"],
+        rdata["timezone_abbreviation"],
+        rdata["elevation"],
+        rdata["hourly_units"],
+        rdata["hourly"]
+    )
+
+    return rnametuple
 
 
 if __name__ == "__main__":
-    print(historical(
-        100, 40, "2024-1-1", "2024-2-1", HistoricalDim.wind_direction_10m, HistoricalDim.wind_speed_100m
-    ))
+    pass
+    # from data_utils.random_utils.basic_distributions import WeibullDistribution
+    # from data_utils.serial_utils.series_trans_utils import MinMax
+    #
+    # data = historical(
+    #     100, 40, "2024-1-1", "2024-2-1", HistoricalDim.wind_speed_100m
+    # ).hourly[HistoricalDim.wind_speed_100m]
+    #
+    # wd = WeibullDistribution(1.78952, 4.14362)
+    #
+    # r = numpy.random.uniform(low=0.1, high=0.9, size=100)
+    #
+    # print(wd.cdf(data))

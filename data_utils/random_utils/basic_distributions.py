@@ -20,7 +20,7 @@ from collections import namedtuple
 import math
 
 # 项目模块
-from dist_utils import ABCDistribution, correlated_rvf, correlated_random_number
+from data_utils.random_utils.dist_utils import ABCDistribution, correlated_rvf, correlated_random_number
 from easy_utils.number_utils.calculus_utils import newton_method
 
 # 外部模块
