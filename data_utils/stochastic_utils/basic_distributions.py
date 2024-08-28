@@ -20,7 +20,7 @@ from collections import namedtuple
 import math
 
 # 项目模块
-from data_utils.random_utils.dist_utils import ABCDistribution, correlated_rvf, correlated_random_number
+from data_utils.stochastic_utils.dist_utils import ABCDistribution, correlated_rvf, correlated_random_number
 from easy_utils.number_utils.calculus_utils import newton_method
 
 # 外部模块
@@ -31,6 +31,10 @@ from scipy.special import betaincinv, beta, iv, gamma, erfinv, erfcinv, betainc
 # 代码块
 
 class NormalDistribution(ABCDistribution):
+    """
+    正态分布
+    """
+    parameterlength = 2
     def __init__(self, mu: float = 0, sigma: float = 1):
         super().__init__(mu=mu, sigma=sigma)
         self.mu = mu
@@ -56,6 +60,12 @@ class NormalDistribution(ABCDistribution):
 
 
 class LogNormalDistribution(ABCDistribution):
+    """
+    对数正态分布
+    """
+
+    parameterlength = 2
+
     def __init__(self, mu: float = 0, sigma: float = 1):
         """
 
@@ -89,6 +99,8 @@ class LogNormalDistribution(ABCDistribution):
 
 class WeibullDistribution(ABCDistribution):
     """威布尔分布"""
+
+    parameterlength = 3
 
     def __init__(self, alpha, beta, miu=0):
         """
@@ -132,6 +144,8 @@ class StudentTDistribution(ABCDistribution):
     """
     student T 分布
     """
+
+    parameterlength=3
 
     def __init__(self, u: float = 0, s: float = 1, v: float = 1):
         """

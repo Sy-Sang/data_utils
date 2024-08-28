@@ -38,6 +38,8 @@ class ABCDistribution(ABC):
     概率分布
     """
 
+    parameterlength = 0
+
     def __init__(self, *args, **kwargs) -> None:
         super().__init__()
         self.args = args

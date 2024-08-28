@@ -19,8 +19,8 @@ from typing import Union, Self
 from collections import namedtuple
 
 # 项目模块
-from dist_utils import ABCDistribution
-from basic_distributions import NormalDistribution
+from data_utils.stochastic_utils.dist_utils import ABCDistribution
+from data_utils.stochastic_utils.basic_distributions import NormalDistribution
 from easy_utils.number_utils import calculus_utils, number_utils
 
 # 外部模块
@@ -80,12 +80,21 @@ class KernelMixDist(ABCDistribution):
         else:
             return numpy.nan
 
+    def mean(self) -> float:
+        return numpy.mean(self.data)
+
+    def std(self) -> float:
+        return numpy.std(self.data)
+
+
+
+
 
 if __name__ == "__main__":
     nd = NormalDistribution(0, 1)
     r = nd.rvf(1000)
     kd = KernelMixDist(r)
-    print(kd.n_mean())
-    print(kd.n_std())
-    print(kd.n_skewness())
-    print(kd.n_kurtosis())
+    print(kd.mean())
+    print(kd.std())
+    # print(kd.n_skewness())
+    # print(kd.n_kurtosis())

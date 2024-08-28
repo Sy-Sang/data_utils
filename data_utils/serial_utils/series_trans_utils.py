@@ -72,6 +72,7 @@ class MinMax(DataTransformator):
             yarray = (xarray - min(xarray)) * (b - a - 2 * eps) / (max(xarray) - min(xarray)) + a + eps
             return yarray, cls.inf, [min(xarray), max(xarray), a, b, eps]
 
+
     @classmethod
     def inf(cls, ylist: Union[list, tuple, numpy.ndarray], *args, **kwargs) -> numpy.ndarray:
         yarray = numpy.array(ylist)
