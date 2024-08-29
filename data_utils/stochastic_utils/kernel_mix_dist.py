@@ -21,7 +21,7 @@ from collections import namedtuple
 # 项目模块
 from data_utils.stochastic_utils.dist_utils import ABCDistribution
 from data_utils.stochastic_utils.basic_distributions import NormalDistribution
-from data_utils.serial_utils.data_series import DataSeries
+from data_utils.serial_utils.data_series import NamedSeries
 from easy_utils.number_utils import calculus_utils
 
 # 外部模块
@@ -46,30 +46,6 @@ def silverman_bandwidth(data) -> float:
     return h
 
 
-def adaptive_bandwidth(data, k: int = 5) -> list:
-    """
-    自适应带宽
-    """
-    h0 = silverman_bandwidth(data)
-    blist = []
-    max_index = len(data) - 1
-    bk = (k if k % 2 == 0 else k + 1) // 2
-    for i, d in enumerate(data):
-        if i < bk:
-            if i >= max_index - bk:
-                distance = max(abs(d - data[0]), abs(d - data[-1]))
-            else:
-                distance = abs(d - data[i + bk])
-        else:
-            if i >= max_index - bk:
-                distance = abs(d - data[i - bk])
-            else:
-                distance = min(abs(d - data[i + bk]), abs(d - data[i - bk]))
-        h1 = h0 * distance
-        blist.append(h1)
-    return blist
-
-
 class GaussianKernel(NormalDistribution):
     """
     高斯核
@@ -88,7 +64,7 @@ class KernelMixDist(ABCDistribution):
     """
 
     def __init__(self, data: Union[list, tuple, numpy.ndarray],
-                 h: Union[float, int, list, tuple, numpy.ndarray] = None, hk: int = 5,
+                 h: Union[float, int] = None,
                  bin: int = None):
         """
         data: 待拟合数据
@@ -102,30 +78,23 @@ class KernelMixDist(ABCDistribution):
             self.data = sorted_data
         else:
             bin_step = len(data) / min(bin, len(data))
-            bin_data = DataSeries(list(range(len(sorted_data))), sorted_data).aggregate(bin_step)
-            self.data = bin_data.data["column_1"]
-        if isinstance(h, (float, int)):
-            self.h = [h] * len(self.data)
-        elif h is None:
-            self.h = adaptive_bandwidth(data, hk)
-            # self.h = [silverman_bandwidth(data)] * len(self.data)
+            bin_data = NamedSeries(sorted_data).aggregate(bin_step)
+            self.data = bin_data.tuple.y
+
+        if h is None:
+            self.h = silverman_bandwidth(data)
         else:
             self.h = h
 
         self.kernels = [
-            GaussianKernel(d, self.h[i]) for i, d in enumerate(self.data)
+            GaussianKernel(d, self.h) for i, d in enumerate(self.data)
         ]
 
     def _pdf(self, x: float) -> float:
-        return sum(
-            k._pdf((x - self.data[i]) / self.h[i]) / self.h[i] for i, k in enumerate(self.kernels)
-        ) / len(self.data)
+        return sum([k._pdf(x) for i, k in enumerate(self.kernels)]) * (1 / (len(self.data) * self.h))
 
     def _cdf(self, x: float) -> float:
-        # snd = NormalDistribution(0, 1)
-        return sum(
-            k._cdf((x - self.data[i]) / self.h[i]) for i, k in enumerate(self.kernels)
-        ) / len(self.data)
+        return sum([k._cdf(x) for i, k in enumerate(self.kernels)]) * (1 / len(self.data))
 
     def _ppf(self, x: float) -> float:
         if 0 < x < 1:
@@ -153,19 +122,20 @@ if __name__ == "__main__":
     r = nd.rvf(1000)
 
     print(silverman_bandwidth(r))
-    print(adaptive_bandwidth(r))
-    kd = KernelMixDist(r, bin=100)
-    print([str(i) for i in kd.kernels])
+    kd = KernelMixDist(r, bin=50)
+    # print([str(i) for i in kd.kernels])
     # # print(kd.pdf().y.tolist())
     # # print(kd.cdf().y.tolist())
     # # print(kd.n_skewness())
     # # print(kd.n_kurtosis())
     #
-    pyplot.hist(r)
+    # pyplot.hist(r)
+    # pyplot.show()
+
+    pyplot.scatter(x=kd.pdf().x, y=kd.pdf().y)
+    pyplot.scatter(x=nd.pdf().x, y=nd.pdf().y)
     pyplot.show()
 
-    pyplot.plot(kd.pdf().y)
-    pyplot.show()
-
-    pyplot.plot(kd.cdf().y)
+    pyplot.scatter(x=kd.cdf().x, y=kd.cdf().y)
+    pyplot.scatter(x=nd.cdf().x, y=nd.cdf().y)
     pyplot.show()

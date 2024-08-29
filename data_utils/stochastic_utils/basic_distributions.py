@@ -36,7 +36,7 @@ class NormalDistribution(ABCDistribution):
     """
     parameterlength = 2
 
-    def __init__(self, mu: float = 0, sigma: float = 1):
+    def __init__(self, mu: Union[float, numpy.floating] = 0, sigma: Union[float, numpy.floating] = 1):
         super().__init__(mu=mu, sigma=sigma)
         self.mu = mu
         self.sigma = sigma
@@ -67,7 +67,7 @@ class LogNormalDistribution(ABCDistribution):
 
     parameterlength = 2
 
-    def __init__(self, mu: float = 0, sigma: float = 1):
+    def __init__(self, mu: Union[float, numpy.floating] = 0, sigma: Union[float, numpy.floating] = 1):
         """
 
         :param mu:
@@ -103,7 +103,8 @@ class WeibullDistribution(ABCDistribution):
 
     parameterlength = 3
 
-    def __init__(self, alpha, beta, miu=0):
+    def __init__(self, alpha: Union[float, numpy.floating], beta: Union[float, numpy.floating],
+                 miu: Union[float, numpy.floating] = 0):
         """
         威布尔分布构造函数
         :param alpha: 形状参数α
@@ -148,7 +149,8 @@ class StudentTDistribution(ABCDistribution):
 
     parameterlength = 3
 
-    def __init__(self, u: float = 0, s: float = 1, v: float = 1):
+    def __init__(self, u: Union[float, numpy.floating] = 0, s: Union[float, numpy.floating] = 1,
+                 v: Union[float, numpy.floating] = 1):
         """
         表示由定位参数 u、尺度参数 s 和自由度 v 决定的学生 t 分布.
         :param u:

@@ -16,6 +16,7 @@ import copy
 import pickle
 import json
 from typing import Union, Self
+from collections import namedtuple
 
 # 项目模块
 from easy_datetime.timestamp import TimeStamp, TimeLine
@@ -75,7 +76,7 @@ class DataSeries(object):
         elif len(kwargs) > 0:
             self.data, self.key_list, self.width, self.x = element_from_dict(**kwargs)
         else:
-            self.data, self.key_list, self.width, self.x = element_from_none
+            self.data, self.key_list, self.width, self.x = element_from_none()
         self.transform_record = SeriesTransRec([])
 
     def __len__(self):
@@ -305,7 +306,7 @@ class DataSeries(object):
         array = self.get_array()
         new_array = numpy.concatenate((array[:, n:], array[:, :n]), axis=1)
         new_series = self._comb_by_key_and_value(new_keys, new_array)
-        new_series.transform_record = self.transform_record.clone()
+        new_series.transform_record = copy.deepcopy(self.transform_record)
         return new_series
 
     def swap_axis_by_index(self, index: int) -> Self:
@@ -424,6 +425,19 @@ class DataSeries(object):
         s = self._comb_by_key_and_value(self.key_list + [entangled_column_name], array)
         s.transform_record = copy.deepcopy(self.transform_record)
         return s
+
+
+class NamedSeries(DataSeries):
+    def __init__(self, data: Union[list, tuple, numpy.ndarray] = None, **kwargs):
+        if data is None:
+            super().__init__(**kwargs)
+        else:
+            super().__init__(
+                x=list(range(len(data))),
+                y=data
+            )
+        nt = namedtuple("nt", ["x", "y"])
+        self.tuple = nt(self.data["x"], self.data["y"])
 
 
 if __name__ == "__main__":

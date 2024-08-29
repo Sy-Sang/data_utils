@@ -60,7 +60,7 @@ def uniformed(
     return nd.cdf(snd).y
 
 
-def dist_switch(data: Union[list, tuple, numpy.ndarray], dist: ABCDistribution) -> numpy.ndarray:
+def dist_convert(data: Union[list, tuple, numpy.ndarray], dist: ABCDistribution) -> numpy.ndarray:
     """
     将数据变为特定分布
     """
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     # pyplot.plot(rn)
     # pyplot.show()
     # print(rn.tolist())
-    rl = dist_switch(rw, LogNormalDistribution(0, 1))
+    rl = dist_convert(rw, LogNormalDistribution(0, 1))
     pyplot.plot(rw)
     pyplot.plot(rl)
     pyplot.show()
