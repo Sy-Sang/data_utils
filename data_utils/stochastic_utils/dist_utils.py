@@ -45,7 +45,14 @@ class ABCDistribution(ABC):
         self.args = args
         self.kwargs = kwargs
 
-    def _2d_curve(self, f: callable, *args, first, end, step) -> Union[float, curve]:
+    def __str__(self) -> str:
+        return str({
+            "name": str(type(self)),
+            "args": str(self.args),
+            "kwargs": str(self.kwargs)
+        })
+
+    def _2d_curve(self, f: callable, *args, first, end, step, num, **kwargs) -> Union[float, curve]:
         """
         形成2维曲线
         """
@@ -57,11 +64,18 @@ class ABCDistribution(ABC):
                 xarray = numpy.array(flatten_args)
             else:
                 if f.__name__ == '_ppf':
-                    xarray = number_utils.EasyFloat.frange(first, end, step, True)
+                    if num is not None:
+                        xarray = number_utils.EasyFloat.finterval(first, end, num, True)
+                    else:
+                        xarray = number_utils.EasyFloat.frange(first, end, step, True)
                 else:
-                    ppf_xarray = number_utils.EasyFloat.frange(first, end, step, True)
+                    if num is not None:
+                        ppf_xarray = number_utils.EasyFloat.finterval(first, end, num, True)
+                    else:
+                        ppf_xarray = number_utils.EasyFloat.frange(first, end, step, True)
                     xarray = numpy.array([self._ppf(x) for x in ppf_xarray])
             c = curve(xarray, numpy.array([f(x) for x in xarray]))
+            # c = curve(xarray, f(xarray))
             return c
 
     @abstractmethod
@@ -85,17 +99,17 @@ class ABCDistribution(ABC):
         """
         pass
 
-    def ppf(self, *args, first=0.01, end=0.99, step=0.01, **kwargs) -> Union[float, curve]:
+    def ppf(self, *args, first=0.01, end=0.99, step=0.01, num: float = None, **kwargs) -> Union[float, curve]:
         """ppf曲线"""
-        return self._2d_curve(self._ppf, *args, first=first, end=end, step=step, **kwargs)
+        return self._2d_curve(self._ppf, *args, first=first, end=end, step=step, num=num, **kwargs)
 
-    def pdf(self, *args, first=0.01, end=0.99, step=0.01, **kwargs) -> Union[float, curve]:
+    def pdf(self, *args, first=0.01, end=0.99, step=0.01, num: float = None, **kwargs) -> Union[float, curve]:
         """pdf曲线"""
-        return self._2d_curve(self._pdf, *args, first=first, end=end, step=step, **kwargs)
+        return self._2d_curve(self._pdf, *args, first=first, end=end, step=step, num=num, **kwargs)
 
-    def cdf(self, *args, first=0.01, end=0.99, step=0.01, **kwargs) -> Union[float, curve]:
+    def cdf(self, *args, first=0.01, end=0.99, step=0.01, num: float = None, **kwargs) -> Union[float, curve]:
         """cdf曲线"""
-        return self._2d_curve(self._cdf, *args, first=first, end=end, step=step, **kwargs)
+        return self._2d_curve(self._cdf, *args, first=first, end=end, step=step, num=num, **kwargs)
 
     def rvf(self, num=1) -> numpy.ndarray:
         """

@@ -20,7 +20,7 @@ from typing import Union, Self
 # 项目模块
 from easy_datetime.timestamp import TimeStamp, TimeLine
 from easy_utils.number_utils.number_utils import EasyFloat
-from series_trans_utils import SeriesTransRec, ColumnTransRec, DataTransformator, MinMax
+from data_utils.serial_utils.series_trans_utils import SeriesTransRec, ColumnTransRec, DataTransformator, MinMax
 
 # 外部模块
 import numpy
@@ -427,8 +427,8 @@ class DataSeries(object):
 
 
 if __name__ == "__main__":
-    data = numpy.random.randint(1, 1000, 90000).reshape(3, -1)
-    s = DataSeries(*data)
+    data = numpy.random.randint(1, 1000, 90000)
+    s = DataSeries(list(range(len(data))), data)
     print(s.x)
     ss = s.aggregate(100, align=True, align_domain=[0, 20000])
     # print(ss)

@@ -35,6 +35,7 @@ class NormalDistribution(ABCDistribution):
     正态分布
     """
     parameterlength = 2
+
     def __init__(self, mu: float = 0, sigma: float = 1):
         super().__init__(mu=mu, sigma=sigma)
         self.mu = mu
@@ -145,7 +146,7 @@ class StudentTDistribution(ABCDistribution):
     student T 分布
     """
 
-    parameterlength=3
+    parameterlength = 3
 
     def __init__(self, u: float = 0, s: float = 1, v: float = 1):
         """
