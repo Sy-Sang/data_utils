@@ -29,6 +29,7 @@ import numpy
 
 # 代码块
 
+eps = numpy.finfo(float).eps
 
 DistCurve = namedtuple('curve', ['x', 'y'])
 DistParamDomain = namedtuple("domain", ["low", "high"])
@@ -138,6 +139,29 @@ class ABCDistribution(ABC):
     def std(self) -> float:
         """标准差"""
         pass
+
+    def pdf_domain(self) -> DistParamDomain:
+        """
+        pdf函数定义域
+        """
+        low = self._ppf(0 + eps)
+        high = self._ppf(1 - eps)
+        d = DistParamDomain(low, high)
+        return d
+
+    # def nmean(self) -> float:
+    #     def f(x):
+    #         x * self._pdf(x)
+    #
+    #     domain = self.pdf_domain()
+    #     return calculus_utils.simpsons_integrate(f, domain.low, domain.high, 100)
+    #
+    # def nstd(self) -> float:
+    #     def f(x):
+    #         (x - self.nmean()) ^ 2 * self._pdf(x)
+    #
+    #     domain = self.pdf_domain()
+    #     return calculus_utils.simpsons_integrate(f, domain.low, domain.high, 100) ** 0.5
 
 
 class UniformDistribution(ABCDistribution):

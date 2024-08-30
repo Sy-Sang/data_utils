@@ -129,9 +129,7 @@ def estimated_distribution(
     """
 
     kernel_dist = KernelMixDist(data, bin=kernel_len)
-    y = kernel_dist.ppf().y
 
-    loss = []
     init_param = []
     for item in dist.parameter_range.items():
         u = UniformDistribution(item[1].low, item[1].high)
@@ -140,54 +138,70 @@ def estimated_distribution(
 
     x = numpy.array(init_param) if x_len is None else numpy.array(init_param[:x_len])
 
-    grad = [0] * len(x)
+    def moment(x):
+        new_dist = dist(*[float(i) for i in x])
+        return numpy.array([new_dist.mean(), new_dist.std()])
 
-    # Adam optimizer parameters
-    beta1 = 0.9
-    beta2 = 0.999
-    epsilon = 1e-8
-    m = numpy.zeros_like(x)  # 初始化一阶矩估计
-    v = numpy.zeros_like(x)  # 初始化二阶矩估计
-    t = 0  # 时间步长
+    def f(x):
+        new_dist = dist(*[float(i) for i in x])
+        return new_dist.ppf().y
 
-    # new_dist = dist(*x.tolist())
-    for ep in range(epoch):
-        for i, xi in enumerate(x):
-            dx_plus = xi + diff
-            dx_minus = xi - diff
+    y = kernel_dist.ppf().y
+    target_moment = numpy.array([kernel_dist.mean(), kernel_dist.std()])
 
-            x_plus = [
-                xj if j != i else dx_plus for j, xj in enumerate(x)
-            ]
+    guess = calculus_utils.adam_method(moment, x, target_moment, diff, lr, epoch)
+    parameter = calculus_utils.adam_method(f, guess, y, diff, lr, epoch)
 
-            x_minus = [
-                xj if j != i else dx_minus for j, xj in enumerate(x)
-            ]
+    return dist(*[float(i) for i in parameter]), numpy.mean((y - f(parameter)) ** 2)
 
-            plus_dist = dist(*x_plus)
-            minus_dist = dist(*x_minus)
-
-            loss_plus = numpy.mean((y - plus_dist.ppf().y) ** 2)
-            loss_minus = numpy.mean((y - minus_dist.ppf().y) ** 2)
-
-            grad[i] = (loss_plus - loss_minus) / (2 * lr)
-
-        new_dist = dist(*x.tolist())
-        y_hat = new_dist.ppf().y
-        loss.append(float(
-            numpy.mean((y - y_hat) ** 2)
-        ))
-
-        t += 1
-        m = beta1 * m + (1 - beta1) * numpy.array(grad)
-        v = beta2 * v + (1 - beta2) * (numpy.array(grad) ** 2)
-        m_hat = m / (1 - beta1 ** t)
-        v_hat = v / (1 - beta2 ** t)
-
-        x -= lr * m_hat / (numpy.sqrt(v_hat) + epsilon)
-
-    print(loss)
-    return new_dist, loss[-1]
+    # grad = [0] * len(x)
+    #
+    # # Adam optimizer parameters
+    # beta1 = 0.9
+    # beta2 = 0.999
+    # epsilon = 1e-8
+    # m = numpy.zeros_like(x)  # 初始化一阶矩估计
+    # v = numpy.zeros_like(x)  # 初始化二阶矩估计
+    # t = 0  # 时间步长
+    #
+    # # new_dist = dist(*x.tolist())
+    # for ep in range(epoch):
+    #     for i, xi in enumerate(x):
+    #         dx_plus = xi + diff
+    #         dx_minus = xi - diff
+    #
+    #         x_plus = [
+    #             xj if j != i else dx_plus for j, xj in enumerate(x)
+    #         ]
+    #
+    #         x_minus = [
+    #             xj if j != i else dx_minus for j, xj in enumerate(x)
+    #         ]
+    #
+    #         plus_dist = dist(*x_plus)
+    #         minus_dist = dist(*x_minus)
+    #
+    #         loss_plus = numpy.mean((y - plus_dist.ppf().y) ** 2)
+    #         loss_minus = numpy.mean((y - minus_dist.ppf().y) ** 2)
+    #
+    #         grad[i] = (loss_plus - loss_minus) / (2 * lr)
+    #
+    #     new_dist = dist(*x.tolist())
+    #     y_hat = new_dist.ppf().y
+    #     loss.append(float(
+    #         numpy.mean((y - y_hat) ** 2)
+    #     ))
+    #
+    #     t += 1
+    #     m = beta1 * m + (1 - beta1) * numpy.array(grad)
+    #     v = beta2 * v + (1 - beta2) * (numpy.array(grad) ** 2)
+    #     m_hat = m / (1 - beta1 ** t)
+    #     v_hat = v / (1 - beta2 ** t)
+    #
+    #     x -= lr * m_hat / (numpy.sqrt(v_hat) + epsilon)
+    #
+    # print(loss)
+    # return new_dist, loss[-1]
 
     # return temp_dist.rvf(len(data))
 
@@ -198,7 +212,7 @@ if __name__ == "__main__":
 
     wd = WeibullDistribution(2, 5)
     rwd = wd.rvf(100)
-    ed, loss = estimated_distribution(rwd, WeibullDistribution, x_len=2, kernel_len=100)
+    ed, loss = estimated_distribution(rwd, WeibullDistribution, x_len=3, kernel_len=100)
     print(ed)
     print(loss)
 
