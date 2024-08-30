@@ -20,7 +20,7 @@ from collections import namedtuple
 import math
 
 # 项目模块
-from data_utils.stochastic_utils.dist_utils import ABCDistribution, correlated_rvf, correlated_random_number
+from data_utils.stochastic_utils.distributions.baseclass import ABCDistribution, DistParamDomain
 from easy_utils.number_utils.calculus_utils import newton_method
 
 # 外部模块
@@ -30,11 +30,16 @@ from scipy.special import betaincinv, beta, iv, gamma, erfinv, erfcinv, betainc
 
 # 代码块
 
+
 class NormalDistribution(ABCDistribution):
     """
     正态分布
     """
-    parameterlength = 2
+
+    parameter_range = {
+        "mu": DistParamDomain(-numpy.inf, numpy.inf),
+        "std": DistParamDomain(0 + numpy.finfo(float).eps, numpy.inf)
+    }
 
     def __init__(self, mu: Union[float, numpy.floating] = 0, sigma: Union[float, numpy.floating] = 1):
         super().__init__(mu=mu, sigma=sigma)
@@ -65,7 +70,10 @@ class LogNormalDistribution(ABCDistribution):
     对数正态分布
     """
 
-    parameterlength = 2
+    parameter_range = {
+        "mu": DistParamDomain(-numpy.inf, numpy.inf),
+        "std": DistParamDomain(0 + numpy.finfo(float).eps, numpy.inf)
+    }
 
     def __init__(self, mu: Union[float, numpy.floating] = 0, sigma: Union[float, numpy.floating] = 1):
         """
@@ -101,7 +109,11 @@ class LogNormalDistribution(ABCDistribution):
 class WeibullDistribution(ABCDistribution):
     """威布尔分布"""
 
-    parameterlength = 3
+    parameter_range = {
+        "alpha": DistParamDomain(0 + numpy.finfo(float).eps, numpy.inf),
+        "beta": DistParamDomain(0 + numpy.finfo(float).eps, numpy.inf),
+        "miu": DistParamDomain(-numpy.inf, numpy.inf)
+    }
 
     def __init__(self, alpha: Union[float, numpy.floating], beta: Union[float, numpy.floating],
                  miu: Union[float, numpy.floating] = 0):
@@ -147,7 +159,11 @@ class StudentTDistribution(ABCDistribution):
     student T 分布
     """
 
-    parameterlength = 3
+    parameter_range = {
+        "u": DistParamDomain(-numpy.inf, numpy.inf),
+        "s": DistParamDomain(0 + numpy.finfo(float).eps, numpy.inf),
+        "v": DistParamDomain(0 + numpy.finfo(float).eps, numpy.inf)
+    }
 
     def __init__(self, u: Union[float, numpy.floating] = 0, s: Union[float, numpy.floating] = 1,
                  v: Union[float, numpy.floating] = 1):
@@ -199,6 +215,7 @@ class StudentTDistribution(ABCDistribution):
 
 
 if __name__ == "__main__":
+    pass
     # print(correlated_rvf([
     #     [NormalDistribution(0, 1), 1],
     #     [NormalDistribution(0, 1), 0.5],
@@ -207,10 +224,10 @@ if __name__ == "__main__":
     #     [WeibullDistribution(2, 5), 0.3]
     # ], 100).tolist())
 
-    print(correlated_random_number(
-        WeibullDistribution(2, 5),
-        100,
-        [WeibullDistribution(2, 5), -0.5],
-        [StudentTDistribution(v=3), 0.5],
-        [NormalDistribution(0, 1), 0.8],
-    ).tolist())
+    # print(correlated_random_number(
+    #     WeibullDistribution(2, 5),
+    #     100,
+    #     [WeibullDistribution(2, 5), -0.5],
+    #     [StudentTDistribution(v=3), 0.5],
+    #     [NormalDistribution(0, 1), 0.8],
+    # ).tolist())

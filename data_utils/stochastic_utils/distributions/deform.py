@@ -19,8 +19,8 @@ from typing import Union, Self
 from collections import namedtuple
 
 # 项目模块
-from data_utils.stochastic_utils.dist_utils import ABCDistribution
-from data_utils.stochastic_utils.basic_distributions import NormalDistribution
+from data_utils.stochastic_utils.distributions.baseclass import ABCDistribution
+from data_utils.stochastic_utils.distributions.basic_distributions import NormalDistribution
 from data_utils.serial_utils.series_trans_utils import ZScore
 
 # 外部模块
@@ -60,7 +60,7 @@ def uniformed(
     return nd.cdf(snd).y
 
 
-def dist_convert(data: Union[list, tuple, numpy.ndarray], dist: ABCDistribution) -> numpy.ndarray:
+def convert_to_dist(data: Union[list, tuple, numpy.ndarray], dist: ABCDistribution) -> numpy.ndarray:
     """
     将数据变为特定分布
     """
@@ -68,7 +68,7 @@ def dist_convert(data: Union[list, tuple, numpy.ndarray], dist: ABCDistribution)
 
 
 if __name__ == "__main__":
-    from data_utils.stochastic_utils.basic_distributions import WeibullDistribution, LogNormalDistribution
+    from data_utils.stochastic_utils.distributions.basic_distributions import WeibullDistribution, LogNormalDistribution
     from matplotlib import pyplot
 
     w = WeibullDistribution(2, 5)
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     # pyplot.plot(rn)
     # pyplot.show()
     # print(rn.tolist())
-    rl = dist_convert(rw, LogNormalDistribution(0, 1))
+    rl = convert_to_dist(rw, LogNormalDistribution(0, 1))
     pyplot.plot(rw)
     pyplot.plot(rl)
     pyplot.show()
