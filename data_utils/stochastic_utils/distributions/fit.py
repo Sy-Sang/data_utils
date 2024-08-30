@@ -211,7 +211,7 @@ if __name__ == "__main__":
         WeibullDistribution
 
     wd = WeibullDistribution(2, 5)
-    rwd = wd.rvf(100)
+    rwd = wd.rvf(1000)
     ed, loss = estimated_distribution(rwd, WeibullDistribution, x_len=3, kernel_len=100)
     print(ed)
     print(loss)
