@@ -194,6 +194,37 @@ class SmoothHisDist(KernelMixDist):
         super().__init__(data)
 
 
+class RestoredLogDist(ABCDistribution):
+    def __init__(self, dist: ABCDistribution):
+        super().__init__()
+        self.log_dist = copy.deepcopy(dist)
+
+    def __str__(self):
+        return str({
+            "name": str(type(self)),
+            "args": str(self.log_dist.args),
+            "kwargs": str(self.log_dist.kwargs)
+        })
+
+    def _ppf(self, x):
+        if 0 < x < 1:
+            return numpy.e ** self.log_dist._ppf(x)
+        else:
+            return numpy.nan
+
+    def _cdf(self, x):
+        return self.log_dist._cdf(numpy.log(x))
+
+    def _pdf(self, x):
+        return self.log_dist._pdf(numpy.log(x)) / x
+
+    def mean(self):
+        return numpy.mean(self.ppf(0.001, 0.999, 0.001).y)
+
+    def std(self):
+        return numpy.std(self.ppf(0.001, 0.999, 0.001).y, ddof=1)
+
+
 @timer
 def sang_estimated_distribution(
         data: Union[list, tuple, numpy.ndarray],
@@ -274,32 +305,59 @@ def mle_estimated_distribution(
     return dist(*[float(i) for i in parameter]), likelihood(parameter)[0]
 
 
+@timer
+def log_sang_estimated_distribution(
+        data: Union[list, tuple, numpy.ndarray],
+        dist: Type[ABCDistribution],
+        diff: float = 1e-5,
+        lr: float = 0.1,
+        epoch: int = 200,
+        x_len: int = None,
+        kernel_len: int = None,
+        *args, **kwargs
+):
+    array = numpy.log(data)
+    log_dist, loss = sang_estimated_distribution(array, dist, diff, lr, epoch, x_len, kernel_len, *args, **kwargs)
+    return RestoredLogDist(log_dist), loss
+
+
 if __name__ == "__main__":
     from data_utils.stochastic_utils.distributions.basic_distributions import NormalDistribution, LogNormalDistribution, \
         WeibullDistribution, StudentTDistribution
 
-    wd = LogNormalDistribution(1, 0.1)
+    wd = WeibullDistribution(2, 6)
     rwd = wd.rvf(1000)
     kd = KernelMixDist(rwd, kernel_len=100)
     hd = HistogramDist(rwd, kernel_len=20)
     hkd = SmoothHisDist(rwd)
-    ed, loss = sang_estimated_distribution(rwd, LogNormalDistribution, x_len=2, timer=True)
-    mle, mloss = mle_estimated_distribution(rwd, LogNormalDistribution, x_len=2, timer=True)
-    print([ed, mle])
+    ed, loss = sang_estimated_distribution(rwd, WeibullDistribution, x_len=2, timer=True, kernel_len=10)
+    mle, mloss = mle_estimated_distribution(rwd, WeibullDistribution, x_len=2, timer=True)
+    led = RestoredLogDist(SmoothHisDist(numpy.log(rwd)))
+    print([ed, mle, led])
     print([loss, mloss])
     # print(hd.kwargs)
     print(freedam_diaconis(rwd, timer=True))
 
     pyplot.plot(ed.ppf().y)
     pyplot.plot(mle.ppf().y)
+    pyplot.plot(led.ppf().y)
     pyplot.plot(wd.ppf().y)
-    pyplot.legend(["sang", "mle", "real"])
+    pyplot.legend(["sang", "mle", "logsang", "real"])
     pyplot.show()
 
     # pyplot.scatter(x=kd.pdf().x, y=kd.pdf().y)
     pyplot.scatter(x=hd.pdf().x, y=hd.pdf().y)
-    pyplot.scatter(x=hkd.pdf().x, y=hkd.pdf().y)
+    pyplot.scatter(x=ed.pdf().x, y=ed.pdf().y)
+    pyplot.scatter(x=led.pdf().x, y=led.pdf().y)
     pyplot.scatter(x=wd.pdf().x, y=wd.pdf().y)
-    pyplot.legend(["hd", "hkd", "wd"])
+    pyplot.legend(["hd", "ed", "logsang", "wd"])
+    # pyplot.legend(["kd", "hd", "hkd", "ed"])
+    pyplot.show()
+
+    pyplot.scatter(x=hd.cdf().x, y=hd.cdf().y)
+    pyplot.scatter(x=ed.cdf().x, y=ed.cdf().y)
+    pyplot.scatter(x=led.cdf().x, y=led.cdf().y)
+    pyplot.scatter(x=wd.cdf().x, y=wd.cdf().y)
+    pyplot.legend(["hd", "ed", "logsang", "wd"])
     # pyplot.legend(["kd", "hd", "hkd", "ed"])
     pyplot.show()
