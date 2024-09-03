@@ -21,13 +21,15 @@ from collections import namedtuple
 # 项目模块
 from data_utils.stochastic_utils.distributions.baseclass import ABCDistribution, UniformDistribution
 from data_utils.stochastic_utils.distributions.basic_distributions import NormalDistribution
-from data_utils.serial_utils.data_series import NamedSeries
+from data_utils.serial_utils.data_series import OneDimSeries
 from easy_utils.number_utils import calculus_utils
+from easy_datetime.temporal_utils import timer
 
 # 外部模块
 import numpy
 from scipy.stats import t, iqr
 from matplotlib import pyplot
+from scipy.interpolate import interp1d
 
 # 代码块
 
@@ -47,6 +49,18 @@ def silverman_bandwidth(data) -> float:
     return h
 
 
+@timer
+def freedam_diaconis(data, *args, **kwargs) -> int:
+    """
+    Freedman-Diaconis 方法
+    """
+    q25, q75 = numpy.percentile(data, [25, 75])
+    n = len(data)
+    bin_width = 2 * (q75 - q25) / numpy.cbrt(n)
+    bin_count = int(numpy.ceil((numpy.max(data) - numpy.min(data)) / bin_width))
+    return bin_count if bin_count < n / 2 else int(n ** 0.5)
+
+
 class GaussianKernel(NormalDistribution):
     """
     高斯核
@@ -59,6 +73,60 @@ class GaussianKernel(NormalDistribution):
         return numpy.exp(-((-self.mu + x) ** 2 / (2 * self.sigma ** 2))) / numpy.sqrt(2 * numpy.pi)
 
 
+class HistogramDist(ABCDistribution):
+    """直方图分布"""
+
+    def __init__(
+            self,
+            data: Union[list, tuple, numpy.ndarray],
+            kernel_len: int = None
+    ):
+        print(kernel_len)
+        if kernel_len is None:
+            kernel_len = freedam_diaconis(data)
+        else:
+            pass
+
+        super().__init__(kernel_len=kernel_len)
+        self.data = data
+        his = numpy.histogram(data, bins=kernel_len, density=False)
+        self.his_x = his[1]
+        self.his_y = his[0]
+        accumulation_his = [0]
+        for i in range(kernel_len):
+            p = self.his_y[i] / len(data)
+            accumulation_his.append(p + accumulation_his[-1])
+
+        self.his_curve = interp1d(self.his_x, accumulation_his)
+        self.his_icurve = interp1d(accumulation_his, self.his_x)
+
+    def mean(self) -> float:
+        return numpy.mean(self.data)
+
+    def std(self) -> float:
+        return numpy.std(self.data)
+
+    def _cdf(self, x):
+        if x < self.his_x[0]:
+            return 0
+        elif x > self.his_x[-1]:
+            return 1
+        else:
+            return self.his_curve(x)
+
+    def _pdf(self, x):
+        eps = 1e-6
+        dy = self._cdf(x + eps) - self._cdf(x - eps)
+        dx = (x + eps) - (x - eps)
+        return dy / dx if dy > 0 else numpy.finfo(float).eps
+
+    def _ppf(self, x):
+        if 0 < x < 1:
+            return self.his_icurve(x)
+        else:
+            return numpy.nan
+
+
 class KernelMixDist(ABCDistribution):
     """
     核混合分布
@@ -66,20 +134,20 @@ class KernelMixDist(ABCDistribution):
 
     def __init__(self, data: Union[list, tuple, numpy.ndarray],
                  h: Union[float, int] = None,
-                 bin: int = None):
+                 kernel_len: int = None):
         """
         data: 待拟合数据
         h: 初始带宽
         hk: 自动化带宽时的k
         bin: 使用bin方法压缩数据时的长度
         """
-        super().__init__()
+        super().__init__(h=h, kernel_len=kernel_len)
         sorted_data = sorted(data)
-        if bin is None:
+        if kernel_len is None:
             self.data = sorted_data
         else:
-            bin_step = len(data) / min(bin, len(data))
-            bin_data = NamedSeries(sorted_data).aggregate(bin_step)
+            bin_step = len(data) / min(kernel_len, len(data))
+            bin_data = OneDimSeries(sorted_data).aggregate(bin_step)
             self.data = bin_data.tuple.y
 
         if h is None:
@@ -115,26 +183,39 @@ class KernelMixDist(ABCDistribution):
         return numpy.std(self.data)
 
 
-def adam_estimated_distribution(
+class SmoothHisDist(KernelMixDist):
+    def __init__(
+            self,
+            data: Union[list, tuple, numpy.ndarray],
+            kernel_len: int = None
+    ):
+        his_dist = HistogramDist(data, kernel_len)
+        data = his_dist.ppf().y
+        super().__init__(data)
+
+
+@timer
+def sang_estimated_distribution(
         data: Union[list, tuple, numpy.ndarray],
         dist: Type[ABCDistribution],
         diff: float = 1e-5,
         lr: float = 0.1,
         epoch: int = 200,
         x_len: int = None,
-        kernel_len: int = 100
+        kernel_len: int = None,
+        *args, **kwargs
 ) -> tuple[ABCDistribution, float]:
     """
-    参数估计
+    快速参数估计
     """
 
-    kernel_dist = KernelMixDist(data, bin=kernel_len)
+    # kernel_dist = KernelMixDist(data, kernel_len=kernel_len)
+    his_dist = HistogramDist(data, kernel_len=kernel_len)
+    # smooth_dist = SmoothHisDist(data, kernel_len=kernel_len)
 
     init_param = []
     for item in dist.parameter_range.items():
-        u = UniformDistribution(item[1].low, item[1].high)
-        r = u.rvf()
-        init_param.append(r)
+        init_param.append(float(item[1].default))
 
     x = numpy.array(init_param) if x_len is None else numpy.array(init_param[:x_len])
 
@@ -146,8 +227,8 @@ def adam_estimated_distribution(
         new_dist = dist(*[float(i) for i in x])
         return new_dist.ppf().y
 
-    y = kernel_dist.ppf().y
-    target_moment = numpy.array([kernel_dist.mean(), kernel_dist.std()])
+    y = his_dist.ppf().y
+    target_moment = numpy.array([numpy.mean(data), numpy.std(data, ddof=1)])
 
     guess = calculus_utils.adam_method(moment, x, target_moment, diff, lr, epoch)
     parameter = calculus_utils.adam_method(f, guess, y, diff, lr, epoch)
@@ -155,26 +236,37 @@ def adam_estimated_distribution(
     return dist(*[float(i) for i in parameter]), numpy.mean((y - f(parameter)) ** 2)
 
 
-def MLE_estimated_distribution(
+@timer
+def mle_estimated_distribution(
         data: Union[list, tuple, numpy.ndarray],
         dist: Type[ABCDistribution],
         diff: float = 1e-5,
         lr: float = 0.1,
         epoch: int = 200,
         x_len: int = None,
+        kernel_len: int = None,
+        *args, **kwargs
 ) -> tuple[ABCDistribution, float]:
+    """
+    最大似然函数参数估计
+    """
+
+    if kernel_len is None:
+        pass
+    else:
+        data = OneDimSeries(data).aggregate(len(data) / min(len(data), kernel_len)).tuple.y
+
     def likelihood(xlist: Union[list, tuple, numpy.ndarray]):
+        """似然函数"""
         l = 0
         for i, d in enumerate(data):
             like_pdf = dist(*xlist).pdf(d)
-            l += numpy.log(like_pdf) if like_pdf > 0 else numpy.log(like_pdf + diff)
+            l += numpy.log(like_pdf) if like_pdf > 0 else numpy.log(diff)
         return [-1 * l]
 
     init_param = []
     for item in dist.parameter_range.items():
-        u = UniformDistribution(item[1].low, item[1].high)
-        r = u.rvf()
-        init_param.append(r)
+        init_param.append(float(item[1].default))
 
     x = numpy.array(init_param) if x_len is None else numpy.array(init_param[:x_len])
 
@@ -184,40 +276,30 @@ def MLE_estimated_distribution(
 
 if __name__ == "__main__":
     from data_utils.stochastic_utils.distributions.basic_distributions import NormalDistribution, LogNormalDistribution, \
-        WeibullDistribution
+        WeibullDistribution, StudentTDistribution
 
-    wd = WeibullDistribution(2, 5)
+    wd = LogNormalDistribution(1, 0.1)
     rwd = wd.rvf(1000)
-    ed, loss = adam_estimated_distribution(rwd, WeibullDistribution, x_len=3, kernel_len=100)
-    mle, mloss = MLE_estimated_distribution(rwd, WeibullDistribution, x_len=3)
+    kd = KernelMixDist(rwd, kernel_len=100)
+    hd = HistogramDist(rwd, kernel_len=20)
+    hkd = SmoothHisDist(rwd)
+    ed, loss = sang_estimated_distribution(rwd, LogNormalDistribution, x_len=2, timer=True)
+    mle, mloss = mle_estimated_distribution(rwd, LogNormalDistribution, x_len=2, timer=True)
     print([ed, mle])
     print([loss, mloss])
+    # print(hd.kwargs)
+    print(freedam_diaconis(rwd, timer=True))
 
     pyplot.plot(ed.ppf().y)
+    pyplot.plot(mle.ppf().y)
     pyplot.plot(wd.ppf().y)
+    pyplot.legend(["sang", "mle", "real"])
     pyplot.show()
 
-    # from matplotlib import pyplot
-    # import json
-    #
-    # nd = NormalDistribution(0, 1)
-    # r = nd.rvf(1000)
-    #
-    # print(silverman_bandwidth(r))
-    # kd = KernelMixDist(r, bin=50)
-    # # print([str(i) for i in kd.kernels])
-    # # # print(kd.pdf().y.tolist())
-    # # # print(kd.cdf().y.tolist())
-    # # # print(kd.n_skewness())
-    # # # print(kd.n_kurtosis())
-    # #
-    # # pyplot.hist(r)
-    # # pyplot.show()
-    #
     # pyplot.scatter(x=kd.pdf().x, y=kd.pdf().y)
-    # pyplot.scatter(x=nd.pdf().x, y=nd.pdf().y)
-    # pyplot.show()
-    #
-    # pyplot.scatter(x=kd.cdf().x, y=kd.cdf().y)
-    # pyplot.scatter(x=nd.cdf().x, y=nd.cdf().y)
-    # pyplot.show()
+    pyplot.scatter(x=hd.pdf().x, y=hd.pdf().y)
+    pyplot.scatter(x=hkd.pdf().x, y=hkd.pdf().y)
+    pyplot.scatter(x=wd.pdf().x, y=wd.pdf().y)
+    pyplot.legend(["hd", "hkd", "wd"])
+    # pyplot.legend(["kd", "hd", "hkd", "ed"])
+    pyplot.show()

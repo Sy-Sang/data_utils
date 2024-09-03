@@ -32,7 +32,8 @@ import numpy
 eps = numpy.finfo(float).eps
 
 DistCurve = namedtuple('curve', ['x', 'y'])
-DistParamDomain = namedtuple("domain", ["low", "high"])
+Domain = namedtuple("Domain", ["low", "high"])
+DistParamDomain = namedtuple("DistParamDomain", ["low", "high", "default"])
 
 
 class ABCDistribution(ABC):
@@ -143,13 +144,13 @@ class ABCDistribution(ABC):
         """标准差"""
         pass
 
-    def pdf_domain(self) -> DistParamDomain:
+    def pdf_domain(self) -> Domain:
         """
         pdf函数定义域
         """
         low = self._ppf(0 + eps)
         high = self._ppf(1 - eps)
-        d = DistParamDomain(low, high)
+        d = Domain(low, high)
         return d
 
     # def nmean(self) -> float:
@@ -171,8 +172,8 @@ class UniformDistribution(ABCDistribution):
     """均匀分布"""
 
     parameter_range = {
-        "low": DistParamDomain(-numpy.inf, numpy.inf),
-        "high": DistParamDomain(-numpy.inf, numpy.inf),
+        "low": Domain(-numpy.inf, numpy.inf),
+        "high": Domain(-numpy.inf, numpy.inf),
     }
 
     def __init__(self, low, high):

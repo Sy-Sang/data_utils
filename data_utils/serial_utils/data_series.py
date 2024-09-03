@@ -55,13 +55,26 @@ def element_from_dict(**kwargs) -> tuple:
             else:
                 pass
     else:
-        pass
+        return None, [], 0, None
     return data, key_list, width, x
 
 
-def element_from_none() -> tuple:
-    """空元素"""
-    return {}, [], 0, numpy.array([])
+def init_element(*args, **kwargs):
+    """初始化参数"""
+    data = {}
+    arg_data, arg_key, arg_width, arg_x = element_from_tuple(*args)
+    kwarg_data, kwarg_key, kwarg_width, kwarg_x = element_from_dict(**kwargs)
+
+    if arg_width == 0 and kwarg_width == 0:
+        return None, [], 0, None
+    else:
+        key_list = arg_key + kwarg_key
+        for i, k in enumerate(key_list):
+            data[k] = arg_data[k] if i < arg_width else kwarg_data[k]
+
+        x = arg_x if arg_x is not None else kwarg_x
+        width = arg_width + kwarg_width
+        return data, key_list, width, x
 
 
 class DataSeries(object):
@@ -71,12 +84,7 @@ class DataSeries(object):
 
     def __init__(self, *args, **kwargs):
         super().__init__()
-        if len(args) > 0:
-            self.data, self.key_list, self.width, self.x = element_from_tuple(*args)
-        elif len(kwargs) > 0:
-            self.data, self.key_list, self.width, self.x = element_from_dict(**kwargs)
-        else:
-            self.data, self.key_list, self.width, self.x = element_from_none()
+        self.data, self.key_list, self.width, self.x = init_element(*args, **kwargs)
         self.transform_record = SeriesTransRec([])
 
     def __len__(self):
@@ -91,6 +99,9 @@ class DataSeries(object):
 
     def __str__(self) -> str:
         return str(self.to_list_dic())
+
+    def __repr__(self):
+        return self.__str__()
 
     def to_list_dic(self) -> dict:
         """
@@ -427,7 +438,9 @@ class DataSeries(object):
         return s
 
 
-class NamedSeries(DataSeries):
+class OneDimSeries(DataSeries):
+    """一维数据序列"""
+
     def __init__(self, data: Union[list, tuple, numpy.ndarray] = None, **kwargs):
         if data is None:
             super().__init__(**kwargs)

@@ -37,8 +37,8 @@ class NormalDistribution(ABCDistribution):
     """
 
     parameter_range = {
-        "mu": DistParamDomain(-numpy.inf, numpy.inf),
-        "std": DistParamDomain(0 + numpy.finfo(float).eps, numpy.inf)
+        "mu": DistParamDomain(-numpy.inf, numpy.inf, 0),
+        "std": DistParamDomain(0 + numpy.finfo(float).eps, numpy.inf, 1),
     }
 
     def __init__(self, mu: Union[float, numpy.floating] = 0, sigma: Union[float, numpy.floating] = 1):
@@ -71,8 +71,8 @@ class LogNormalDistribution(ABCDistribution):
     """
 
     parameter_range = {
-        "mu": DistParamDomain(-numpy.inf, numpy.inf),
-        "std": DistParamDomain(0 + numpy.finfo(float).eps, numpy.inf)
+        "mu": DistParamDomain(-numpy.inf, numpy.inf, 0),
+        "std": DistParamDomain(0 + numpy.finfo(float).eps, numpy.inf, 1)
     }
 
     def __init__(self, mu: Union[float, numpy.floating] = 0, sigma: Union[float, numpy.floating] = 1):
@@ -110,9 +110,9 @@ class WeibullDistribution(ABCDistribution):
     """威布尔分布"""
 
     parameter_range = {
-        "alpha": DistParamDomain(0 + numpy.finfo(float).eps, numpy.inf),
-        "beta": DistParamDomain(0 + numpy.finfo(float).eps, numpy.inf),
-        "miu": DistParamDomain(-numpy.inf, numpy.inf)
+        "alpha": DistParamDomain(0 + numpy.finfo(float).eps, numpy.inf, 2),
+        "beta": DistParamDomain(0 + numpy.finfo(float).eps, numpy.inf, 5),
+        "miu": DistParamDomain(-numpy.inf, numpy.inf, 0)
     }
 
     def __init__(self, alpha: Union[float, numpy.floating], beta: Union[float, numpy.floating],
@@ -160,9 +160,9 @@ class StudentTDistribution(ABCDistribution):
     """
 
     parameter_range = {
-        "u": DistParamDomain(-numpy.inf, numpy.inf),
-        "s": DistParamDomain(0 + numpy.finfo(float).eps, numpy.inf),
-        "v": DistParamDomain(0 + numpy.finfo(float).eps, numpy.inf)
+        "u": DistParamDomain(-numpy.inf, numpy.inf, 0),
+        "s": DistParamDomain(0 + numpy.finfo(float).eps, numpy.inf, 1),
+        "v": DistParamDomain(0 + numpy.finfo(float).eps, numpy.inf, 1)
     }
 
     def __init__(self, u: Union[float, numpy.floating] = 0, s: Union[float, numpy.floating] = 1,
