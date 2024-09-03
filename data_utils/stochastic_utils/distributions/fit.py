@@ -115,7 +115,7 @@ class KernelMixDist(ABCDistribution):
         return numpy.std(self.data)
 
 
-def estimated_distribution(
+def adam_estimated_distribution(
         data: Union[list, tuple, numpy.ndarray],
         dist: Type[ABCDistribution],
         diff: float = 1e-5,
@@ -154,56 +154,32 @@ def estimated_distribution(
 
     return dist(*[float(i) for i in parameter]), numpy.mean((y - f(parameter)) ** 2)
 
-    # grad = [0] * len(x)
-    #
-    # # Adam optimizer parameters
-    # beta1 = 0.9
-    # beta2 = 0.999
-    # epsilon = 1e-8
-    # m = numpy.zeros_like(x)  # 初始化一阶矩估计
-    # v = numpy.zeros_like(x)  # 初始化二阶矩估计
-    # t = 0  # 时间步长
-    #
-    # # new_dist = dist(*x.tolist())
-    # for ep in range(epoch):
-    #     for i, xi in enumerate(x):
-    #         dx_plus = xi + diff
-    #         dx_minus = xi - diff
-    #
-    #         x_plus = [
-    #             xj if j != i else dx_plus for j, xj in enumerate(x)
-    #         ]
-    #
-    #         x_minus = [
-    #             xj if j != i else dx_minus for j, xj in enumerate(x)
-    #         ]
-    #
-    #         plus_dist = dist(*x_plus)
-    #         minus_dist = dist(*x_minus)
-    #
-    #         loss_plus = numpy.mean((y - plus_dist.ppf().y) ** 2)
-    #         loss_minus = numpy.mean((y - minus_dist.ppf().y) ** 2)
-    #
-    #         grad[i] = (loss_plus - loss_minus) / (2 * lr)
-    #
-    #     new_dist = dist(*x.tolist())
-    #     y_hat = new_dist.ppf().y
-    #     loss.append(float(
-    #         numpy.mean((y - y_hat) ** 2)
-    #     ))
-    #
-    #     t += 1
-    #     m = beta1 * m + (1 - beta1) * numpy.array(grad)
-    #     v = beta2 * v + (1 - beta2) * (numpy.array(grad) ** 2)
-    #     m_hat = m / (1 - beta1 ** t)
-    #     v_hat = v / (1 - beta2 ** t)
-    #
-    #     x -= lr * m_hat / (numpy.sqrt(v_hat) + epsilon)
-    #
-    # print(loss)
-    # return new_dist, loss[-1]
 
-    # return temp_dist.rvf(len(data))
+def MLE_estimated_distribution(
+        data: Union[list, tuple, numpy.ndarray],
+        dist: Type[ABCDistribution],
+        diff: float = 1e-5,
+        lr: float = 0.1,
+        epoch: int = 200,
+        x_len: int = None,
+) -> tuple[ABCDistribution, float]:
+    def likelihood(xlist: Union[list, tuple, numpy.ndarray]):
+        l = 0
+        for i, d in enumerate(data):
+            like_pdf = dist(*xlist).pdf(d)
+            l += numpy.log(like_pdf) if like_pdf > 0 else numpy.log(like_pdf + diff)
+        return [-1 * l]
+
+    init_param = []
+    for item in dist.parameter_range.items():
+        u = UniformDistribution(item[1].low, item[1].high)
+        r = u.rvf()
+        init_param.append(r)
+
+    x = numpy.array(init_param) if x_len is None else numpy.array(init_param[:x_len])
+
+    parameter = calculus_utils.adam_method(likelihood, x, [0], diff, lr, epoch)
+    return dist(*[float(i) for i in parameter]), likelihood(parameter)[0]
 
 
 if __name__ == "__main__":
@@ -212,9 +188,10 @@ if __name__ == "__main__":
 
     wd = WeibullDistribution(2, 5)
     rwd = wd.rvf(1000)
-    ed, loss = estimated_distribution(rwd, WeibullDistribution, x_len=3, kernel_len=100)
-    print(ed)
-    print(loss)
+    ed, loss = adam_estimated_distribution(rwd, WeibullDistribution, x_len=3, kernel_len=100)
+    mle, mloss = MLE_estimated_distribution(rwd, WeibullDistribution, x_len=3)
+    print([ed, mle])
+    print([loss, mloss])
 
     pyplot.plot(ed.ppf().y)
     pyplot.plot(wd.ppf().y)

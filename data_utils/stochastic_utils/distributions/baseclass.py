@@ -54,6 +54,9 @@ class ABCDistribution(ABC):
             "kwargs": str(self.kwargs)
         })
 
+    def __repr__(self):
+        return self.__str__()
+
     def _2d_curve(self, f: callable, *args, first, end, step, num, **kwargs) -> Union[float, DistCurve]:
         """
         形成2维曲线
