@@ -99,16 +99,10 @@ class SangDistEstimated:
     def __init__(
             self,
             data: Union[list, tuple, numpy.ndarray],
-            # target_loss_rate: float = 0.1,
-            std_num: float = 1
+            loss: float = 0.01
     ):
         self.data = numpy.array(data)
-        target_loss_rate = numpy.std(self.data, ddof=1) * std_num
-
-        plus_data = sign_log(self.data + target_loss_rate)
-        self.target_abs_loss = numpy.mean(
-            abs(plus_data - sign_log(self.data))
-        )
+        self.target_abs_loss = loss
 
     @timer
     def forced_estimate(
@@ -122,49 +116,56 @@ class SangDistEstimated:
             max_try=100,
             *args, **kwargs
     ):
+        """
+        参数估计
+        """
         fit_dist, loss, adam_param = sang_ed(data=self.data, dist=dist, diff=diff, lr=lr, epoch=epoch, x_len=x_len,
                                              kernel_len=kernel_len, init_x=None, timer=False
                                              )
         dist_param_list = list(fit_dist.kwargs.values())
         loop_init_x = numpy.array(dist_param_list[:x_len])
 
+        counter = 0
         for i in range(max_try):
             fit_dist, loss, adam_param = sang_ed(data=self.data, dist=dist, diff=diff, lr=lr, epoch=epoch, x_len=x_len,
                                                  kernel_len=kernel_len, init_x=loop_init_x, timer=False)
             dist_param_list = list(fit_dist.kwargs.values())
             loop_init_x -= lr * numpy.array(dist_param_list[:x_len]) * adam_param
 
+            counter += 1
+
             if loss <= self.target_abs_loss:
                 break
             else:
                 pass
-        return fit_dist, loss
+        return fit_dist, loss, counter
 
-    @timer
-    def ensemble_estimate(
-            self,
-            dist: Type[ABCDistribution],
-            diff: float = 1e-5,
-            lr: float = 0.1,
-            epoch: int = 200,
-            x_len: int = None,
-            kernel_len: int = None,
-            max_try=50,
-            ensemble_num=10,
-            *args, **kwargs
-    ):
-        dlist = []
-        llist = []
-        for i in range(ensemble_num):
-            d, l = self.forced_estimate(
-                data=self.data, dist=dist, diff=diff, lr=lr, epoch=epoch, x_len=x_len,
-                kernel_len=kernel_len, init_x=None, max_try=max_try, timer=False
-            )
-            dlist.append(d)
-            llist.append(l)
-        lindex = numpy.argsort(llist)
-        print(llist)
-        return dlist[lindex[0]], llist[lindex[0]]
+    # @timer
+    # def ensemble_estimate(
+    #         self,
+    #         dist: Type[ABCDistribution],
+    #         diff: float = 1e-5,
+    #         lr: float = 0.1,
+    #         epoch: int = 200,
+    #         x_len: int = None,
+    #         kernel_len: int = None,
+    #         max_try=50,
+    #         ensemble_num=10,
+    #         *args, **kwargs
+    # ):
+    #     """集成参数估计"""
+    #     dlist = []
+    #     llist = []
+    #     for i in range(ensemble_num):
+    #         d, l = self.forced_estimate(
+    #             data=self.data, dist=dist, diff=diff, lr=lr, epoch=epoch, x_len=x_len,
+    #             kernel_len=kernel_len, init_x=None, max_try=max_try, timer=False
+    #         )
+    #         dlist.append(d)
+    #         llist.append(l)
+    #     lindex = numpy.argsort(llist)
+    #     print(llist)
+    #     return dlist[lindex[0]], llist[lindex[0]]
 
 
 if __name__ == "__main__":
@@ -173,17 +174,18 @@ if __name__ == "__main__":
         WeibullDistribution, StudentTDistribution
 
     # wd = WeibullDistribution(0.1, 1)
-    # wd = WeibullDistribution(150, 500)
-    wd = NormalDistribution(-5, 100)
+    wd = WeibullDistribution(150, 500)
+    # wd = NormalDistribution(-5, 100)
     # wd = NormalDistribution(-5, 0.1)
     # wd = WeibullDistribution(5, 6)
     rwd = wd.rvf(2000)
-    est = SangDistEstimated(rwd, std_num=0.1)
+    est = SangDistEstimated(rwd, loss=0.01)
     lhd = LogHisDist(rwd)
     hd = HistogramDist(rwd)
     # fit, loss = est.forced_estimate(WeibullDistribution, x_len=2, epoch=5000, max_try=1, timer=True)
-    fit, loss = est.forced_estimate(NormalDistribution, x_len=2, epoch=500, max_try=10, timer=True)
+    fit, loss, c = est.forced_estimate(WeibullDistribution, x_len=2, epoch=1000, max_try=100, timer=True)
     print(fit)
+    print(c)
     pyplot.plot(fit.ppf().y)
     pyplot.plot(lhd.ppf().y)
     pyplot.plot(hd.ppf().y)
