@@ -21,7 +21,8 @@ from collections import namedtuple
 # 项目模块
 from data_utils.stochastic_utils.distributions.baseclass import ABCDistribution
 from data_utils.stochastic_utils.distributions.basic_distributions import NormalDistribution, LogNormalDistribution
-from data_utils.stochastic_utils.distributions.fit import HistogramDist, LogHisDist, SmoothHisDist
+from data_utils.stochastic_utils.distributions.non_parametric_distribution import HistogramDist, LogHisDist, \
+    SmoothHisDist
 from easy_utils.number_utils import calculus_utils
 from easy_datetime.temporal_utils import timer
 

@@ -232,96 +232,6 @@ class LogHisDist(ABCDistribution):
 
 
 @timer
-def sang_estimated_distribution(
-        data: Union[list, tuple, numpy.ndarray],
-        dist: Type[ABCDistribution],
-        diff: float = 1e-5,
-        lr: float = 0.1,
-        epoch: int = 200,
-        x_len: int = None,
-        kernel_len: int = None,
-        init_x: Union[list, tuple, numpy.ndarray] = None,
-        *args, **kwargs
-) -> tuple[ABCDistribution, float, float]:
-    """
-    快速参数估计
-    """
-
-    his_dist = HistogramDist(data, kernel_len=kernel_len)
-
-    if init_x is None:
-        init_param = []
-        for item in dist.parameter_range.items():
-            init_param.append(float(item[1].default))
-        x = numpy.array(init_param) if x_len is None else numpy.array(init_param[:x_len])
-    else:
-        x = numpy.array(init_x) if x_len is None else numpy.array(init_x[:x_len])
-
-    def moment(x):
-        new_dist = dist(*[float(i) for i in x])
-        return numpy.array([new_dist.mean(), new_dist.std()])
-
-    def f(x):
-        new_dist = dist(*[float(i) for i in x])
-        return new_dist.ppf().y
-
-    y = his_dist.ppf().y
-
-    if init_x is None:
-        target_moment = numpy.array([numpy.mean(data), numpy.std(data, ddof=1)])
-        guess, _ = calculus_utils.adam_method(moment, x, target_moment, diff, lr, epoch, loss="mae")
-    else:
-        guess = x
-    parameter, adam_param = calculus_utils.adam_method(f, guess, y, diff, lr, epoch, loss="mae")
-    return dist(*[float(i) for i in parameter]), numpy.mean(abs(f(parameter) - y)), adam_param
-
-
-@timer
-def forced_sang_estimated_distribution(
-        data: Union[list, tuple, numpy.ndarray],
-        dist: Type[ABCDistribution],
-        target_loss_rate: float = 0.1,
-        diff: float = 1e-5,
-        lr: float = 0.1,
-        epoch: int = 200,
-        x_len: int = None,
-        kernel_len: int = None,
-        max_try=100,
-        *args, **kwargs
-) -> tuple[ABCDistribution, float, list]:
-    loss_list = []
-    array = numpy.array(data)
-    target_abs_loss = numpy.mean(numpy.abs(array * (1 + target_loss_rate) - array))
-    fit_dist, loss, _ = sang_estimated_distribution(
-        data=array,
-        dist=dist,
-        diff=diff,
-        lr=lr,
-        epoch=epoch,
-        x_len=x_len,
-        kernel_len=kernel_len,
-        timer=False
-    )
-    for i in range(max_try):
-        init_x = numpy.array(list(fit_dist.kwargs.values()))
-        fit_dist, loss, _ = sang_estimated_distribution(
-            data=array,
-            dist=dist,
-            diff=diff,
-            lr=lr,
-            epoch=epoch,
-            x_len=x_len,
-            kernel_len=kernel_len,
-            init_x=init_x,
-            timer=False
-        )
-        loss_list.append(loss)
-        if loss <= target_abs_loss:
-            break
-    return fit_dist, loss, loss_list
-
-
-@timer
 def mle_estimated_distribution(
         data: Union[list, tuple, numpy.ndarray],
         dist: Type[ABCDistribution],
@@ -363,7 +273,7 @@ if __name__ == "__main__":
     from data_utils.stochastic_utils.distributions.basic_distributions import NormalDistribution, LogNormalDistribution, \
         WeibullDistribution, StudentTDistribution
 
-    wd = WeibullDistribution(1, 10)
+    wd = WeibullDistribution(2, 10)
     # wd = NormalDistribution(100, 100)
     rwd = wd.rvf(1000)
 
@@ -389,41 +299,3 @@ if __name__ == "__main__":
     pyplot.scatter(x=wd.pdf().x, y=wd.pdf().y)
     pyplot.show()
 
-    # kd = KernelMixDist(rwd, kernel_len=100)
-    # hd = HistogramDist(rwd, kernel_len=20)
-    # hkd = SmoothHisDist(rwd)
-    # ed, loss, _ = sang_estimated_distribution(rwd, WeibullDistribution, x_len=3, timer=True)
-    # print(ed, loss, _)
-    # fed, floss, flosslist = forced_sang_estimated_distribution(data=rwd, dist=WeibullDistribution, x_len=2, timer=True,
-    #                                                            target_loss_rate=0.05)
-    # mle, mloss = mle_estimated_distribution(rwd, WeibullDistribution, x_len=2, timer=True)
-    # lhd = LogHisDist(rwd)
-    # print([ed, mle, lhd, fed])
-    # print([loss, mloss])
-    #
-    # pyplot.plot(ed.ppf().y)
-    # pyplot.plot(mle.ppf().y)
-    # pyplot.plot(hd.ppf().y)
-    # pyplot.plot(lhd.ppf().y)
-    # pyplot.plot(fed.ppf().y)
-    # pyplot.plot(wd.ppf().y)
-    # pyplot.legend(["sang", "mle", "hd", "lhd", "fed", "real"])
-    # pyplot.show()
-    #
-    # pyplot.scatter(x=kd.pdf().x, y=kd.pdf().y)
-    # pyplot.scatter(x=hd.pdf().x, y=hd.pdf().y)
-    # pyplot.scatter(x=ed.pdf().x, y=ed.pdf().y)
-    # pyplot.scatter(x=lhd.pdf().x, y=lhd.pdf().y)
-    # pyplot.scatter(x=fed.pdf().x, y=fed.pdf().y)
-    # pyplot.scatter(x=wd.pdf().x, y=wd.pdf().y)
-    # pyplot.legend(["kd", "hd", "ed", "lhd", "fed", "wd"])
-    # pyplot.show()
-    #
-    # pyplot.scatter(x=hd.cdf().x, y=hd.cdf().y)
-    # pyplot.scatter(x=ed.cdf().x, y=ed.cdf().y)
-    # pyplot.scatter(x=lhd.cdf().x, y=lhd.cdf().y)
-    # pyplot.scatter(x=fed.cdf().x, y=fed.cdf().y)
-    # pyplot.scatter(x=wd.cdf().x, y=wd.cdf().y)
-    # pyplot.legend(["hd", "ed", "lhd", "fed", "wd"])
-    # # pyplot.legend(["kd", "hd", "hkd", "ed"])
-    # pyplot.show()
