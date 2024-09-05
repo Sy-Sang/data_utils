@@ -41,6 +41,35 @@ def sign_log(x):
     return sign * numpy.log(numpy.abs(x))
 
 
+@timer
+def moment_ed(
+        target: dict,
+        dist: Type[ABCDistribution],
+        diff: float = 1e-5,
+        lr: float = 0.1,
+        epoch: int = 200,
+        x_len: int = None,
+        init_x: Union[list, tuple, numpy.ndarray] = None,
+        *args, **kwargs
+) -> tuple[ABCDistribution, list, numpy.ndarray]:
+    if init_x is None:
+        init_param = []
+        for item in dist.parameter_range.items():
+            init_param.append(float(item[1].default))
+        x = numpy.array(init_param) if x_len is None else numpy.array(init_param[:x_len])
+    else:
+        x = numpy.array(init_x) if x_len is None else numpy.array(init_x[:x_len])
+
+    def moment(x):
+        _dist = dist(*[float(i) for i in x])
+        return numpy.array([_dist.__getattribute__(k)() for k in target.keys()])
+
+    target_moment = numpy.array([float(i) for i in target.values()])
+    guess, adam_param = calculus_utils.adam_method(moment, x, target_moment, diff, lr, epoch, loss="mae")
+    new_dist = dist(*[float(i) for i in guess])
+    return new_dist, [float(new_dist.__getattribute__(k)()) for k in target.keys()], adam_param
+
+
 def sang_ed(
         data: Union[list, tuple, numpy.ndarray],
         dist: Type[ABCDistribution],
@@ -105,7 +134,7 @@ class SangDistEstimated:
         self.target_abs_loss = loss
 
     @timer
-    def forced_estimate(
+    def data_estimate(
             self,
             dist: Type[ABCDistribution],
             diff: float = 1e-5,
@@ -183,7 +212,7 @@ if __name__ == "__main__":
     lhd = LogHisDist(rwd)
     hd = HistogramDist(rwd)
     # fit, loss = est.forced_estimate(WeibullDistribution, x_len=2, epoch=5000, max_try=1, timer=True)
-    fit, loss, c = est.forced_estimate(WeibullDistribution, x_len=2, epoch=1000, max_try=100, timer=True)
+    fit, loss, c = est.data_estimate(WeibullDistribution, x_len=2, epoch=1000, max_try=100, timer=True)
     print(fit)
     print(c)
     pyplot.plot(fit.ppf().y)
