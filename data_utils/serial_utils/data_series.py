@@ -420,22 +420,30 @@ class DataSeries(object):
             del s.transform_record.his[-1]
         return s
 
-    def column_entangled(self, f: callable, *args: str, **kwargs) -> Self:
+    def column_entangled(self, f: callable, column_list: list[str] = None, param_json: str = None, *args,
+                         **kwargs) -> Self:
         """
         组间相干
+        column_list: 参与的列名
+        column_json: json序列化后的f参数, 例如:[{},{}], [[{},{}]] ...
         """
-        entangled_column_name = f"{'_'.join(item for item in args)}"
-        entangled_data = []
-        for i in range(len(self)):
-            entangled_data.append(
-                f(*[self.data[a][i] for a in args], **kwargs)
-            )
+        if param_json is None or column_list is None:
+            return copy.deepcopy(self)
+        else:
+            entangled_column_name = f"{'&'.join(item for item in column_list)}-by-{f.__name__}"
+            entangled_data = []
+            for i in range(len(self)):
+                params = json.loads(param_json.format(*[self.data[c][i] for c in column_list]))
+                print(params)
+                entangled_data.append(
+                    f(*params, *args, **kwargs)
+                )
 
-        array = self.get_array()
-        array = numpy.column_stack((array, entangled_data))
-        s = self._comb_by_key_and_value(self.key_list + [entangled_column_name], array)
-        s.transform_record = copy.deepcopy(self.transform_record)
-        return s
+            array = self.get_array()
+            array = numpy.column_stack((array, entangled_data))
+            s = self._comb_by_key_and_value(self.key_list + [entangled_column_name], array)
+            s.transform_record = copy.deepcopy(self.transform_record)
+            return s
 
 
 class OneDimSeries(DataSeries):

@@ -184,6 +184,8 @@ class KernelMixDist(ABCDistribution):
 
 
 class SmoothHisDist(KernelMixDist):
+    """平滑直方图分布"""
+
     def __init__(
             self,
             data: Union[list, tuple, numpy.ndarray],
@@ -202,6 +204,7 @@ class LogHisDist(ABCDistribution):
         log_array = numpy.log(array)
         his = HistogramDist(log_array, kernel_len=kernel_len)
         super().__init__(kernel_len=kernel_len, diff=diff)
+        self.data = array
         self.log_dist = copy.deepcopy(his)
         self.diff = diff
 
@@ -225,10 +228,10 @@ class LogHisDist(ABCDistribution):
         return self.log_dist._pdf(numpy.log(x + self.kwargs["diff"])) / (x + self.kwargs["diff"])
 
     def mean(self):
-        return numpy.mean(self.ppf(0.001, 0.999, 0.001).y)
+        return numpy.mean(self.data)
 
     def std(self):
-        return numpy.std(self.ppf(0.001, 0.999, 0.001).y, ddof=1)
+        return numpy.std(self.data, ddof=1)
 
 
 @timer
@@ -298,4 +301,3 @@ if __name__ == "__main__":
     pyplot.scatter(x=logdist.pdf().x, y=logdist.pdf().y)
     pyplot.scatter(x=wd.pdf().x, y=wd.pdf().y)
     pyplot.show()
-

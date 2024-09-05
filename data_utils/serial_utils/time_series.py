@@ -19,6 +19,7 @@ from typing import Union, Self
 
 # 项目模块
 from easy_datetime.timestamp import TimeStamp, TimeLine
+from easy_datetime.temporal_utils import timer
 from data_series import DataSeries
 from series_trans_utils import ColumnTransRec, DataTransformator, MinMax
 
@@ -28,6 +29,11 @@ import numpy
 
 # 代码块
 
+# @timer
+# def init_time_data(data: Union[list, tuple, numpy.ndarray], *args, **kwargs):
+#     return numpy.unique([TimeStamp(i).timestamp() for i in data]).tolist()
+
+
 class TimeSeries(DataSeries):
     """
     时间序列
@@ -36,15 +42,20 @@ class TimeSeries(DataSeries):
     def __init__(self, *args, **kwargs):
         largs = list(args)
         dkwargs = dict(kwargs)
+        time_stamp = TimeLine()
 
         if len(largs) > 0:
-            largs[0] = numpy.unique([TimeStamp(i).timestamp() for i in largs[0]]).tolist()
+            time_stamp = TimeLine(numpy.unique(largs[0]))
+            largs[0] = time_stamp.timestamp()
         elif len(dkwargs) > 0:
             k = list(dkwargs)[0]
-            dkwargs[k] = numpy.unique([TimeStamp(i).timestamp() for i in dkwargs[k]]).tolist()
+            time_stamp = TimeLine(numpy.unique(dkwargs[k]))
+            dkwargs[k] = time_stamp.timestamp()
+        else:
+            pass
 
         super().__init__(*largs, **dkwargs)
-        self.time_stamp = TimeLine(self.x)
+        self.time_stamp = time_stamp
 
     def __len__(self):
         return super().__len__()
@@ -54,6 +65,9 @@ class TimeSeries(DataSeries):
 
     def __str__(self) -> str:
         return super().__str__()
+
+    def __repr__(self):
+        return self.__str__()
 
     def to_list_dic(self) -> dict:
         """
@@ -321,7 +335,7 @@ class TimeSeries(DataSeries):
 
     def aggregate(
             self, step: list, method: callable = numpy.mean,
-            align: bool = False, align_domain: Union[list, tuple] = (),
+            align: bool = False, align_domain: Union[list, tuple] = None,
             *args, **kwargs
     ) -> Self:
         if align is False:
