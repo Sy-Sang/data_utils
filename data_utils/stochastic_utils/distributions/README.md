@@ -1,3 +1,7 @@
+# 连续分布
+## continuous probability distribution
+
+
 ```python
 from data_utils.stochastic_utils.distributions.basic_distributions import *
 from data_utils.stochastic_utils.distributions.estimation import *
@@ -5,9 +9,11 @@ import numpy
 from matplotlib import pyplot
 ```
 
+# 初始化威布尔分布(形状参数, 尺度参数)
+## Initialize Weibull distribution (shape parameters, scale parameters)
+
 
 ```python
-# 初始化威布尔分布(形状参数, 尺度参数)
 w = WeibullDistribution(2,5)
 ```
 
@@ -24,13 +30,15 @@ pyplot.show()
 
 
     
-![png](output_2_0.png)
+![png](output_4_0.png)
     
 
 
+# 使用随机变量进行参数拟合
+## Using random variables for parameter fitting
+
 
 ```python
-# 使用随机变量进行参数拟合
 es = SangDistEstimated(w.rvf(1000), loss=0.01)
 esd, loss, _ = es.data_estimate(WeibullDistribution, epoch=1000, max_try=20, timer=True)
 print(loss)
@@ -53,13 +61,15 @@ pyplot.show()
 
 
     
-![png](output_3_1.png)
+![png](output_6_1.png)
     
 
 
+# 对随机变量使用非参分布拟合
+## Fit random variables using non parametric distributions
+
 
 ```python
-# 对随机变量使用非参分布拟合
 dist = WeibullDistribution(1, 10)
 r = dist.rvf(1000)
 his_dist = HistogramDist(r)
@@ -86,13 +96,15 @@ pyplot.show()
 
 
     
-![png](output_4_0.png)
+![png](output_8_0.png)
     
 
 
+# 给定分布的均值和标准层, 拟合分布参数
+## Given the mean and standard layer of the distribution, fit the distribution parameters
+
 
 ```python
-# 给定分布的均值和标准层, 拟合分布参数
 lnd, moments, _ = moment_ed({"mean":0, "std":1}, LogNormalDistribution, timer=True, epoch=1000)
 print(lnd)
 print(moments)
@@ -111,7 +123,7 @@ pyplot.show()
 
 
     
-![png](output_5_1.png)
+![png](output_10_1.png)
     
 
 
