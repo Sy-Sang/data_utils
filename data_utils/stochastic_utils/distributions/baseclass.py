@@ -21,7 +21,7 @@ from collections import namedtuple
 
 # 项目模块
 from easy_utils.number_utils import calculus_utils, number_utils
-from easy_utils.obj_utils.sequence_utils import flatten
+from easy_utils.obj_utils.enumerable_utils import flatten
 from data_utils.serial_utils.series_trans_utils import MinMax
 
 # 外部模块

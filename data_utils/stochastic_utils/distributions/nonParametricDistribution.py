@@ -234,6 +234,19 @@ class LogHisDist(ABCDistribution):
         return numpy.std(self.data, ddof=1)
 
 
+class LogSmoothHisDist(LogHisDist):
+    def __init__(self, data: Union[list, tuple, numpy.ndarray], kernel_len: int = None):
+        array = numpy.array(data)
+        diff = 1 - numpy.min(array)
+        array += diff
+        log_array = numpy.log(array)
+        his = SmoothHisDist(log_array, kernel_len=kernel_len)
+        super().__init__(data, kernel_len)
+        self.data = array
+        self.log_dist = copy.deepcopy(his)
+        self.diff = diff
+
+
 @timer
 def mle_estimated_distribution(
         data: Union[list, tuple, numpy.ndarray],

@@ -83,5 +83,3 @@ if __name__ == "__main__":
 
     print(new_tb.aggregate(["month", 1]))
     print(new_tb.aggregate(["month", 1]).column_entangled(sum, ["column_1", "d1"], "[[{},{}]]"))
-
-    TimeTable.comb_by_key_and_value()
