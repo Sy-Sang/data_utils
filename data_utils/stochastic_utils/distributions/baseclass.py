@@ -117,6 +117,19 @@ class ABCDistribution(ABC):
         """cdf曲线"""
         return self._2d_curve(self._cdf, *args, first=first, end=end, step=step, num=num, **kwargs)
 
+    def pdf_domain(self) -> Domain:
+        """
+        pdf函数定义域
+        """
+        low = self._ppf(0 + eps)
+        high = self._ppf(1 - eps)
+        d = Domain(low, high)
+        return d
+
+    def cdf_domain(self) -> Domain:
+        """cdf函数定义域"""
+        return self.pdf()
+
     def rvf(self, num: int = 1) -> numpy.ndarray:
         """
         生成随机数
@@ -134,6 +147,26 @@ class ABCDistribution(ABC):
         else:
             return rv
 
+    def limited_rvf(self, domain_list: Union[list, tuple] = (0, 1), num: int = 100):
+        """
+        给定范围的随机数
+        """
+        rvf_domain = self.pdf_domain()
+        domain = Domain(domain_list[0], domain_list[1])
+
+        low = self._cdf(rvf_domain.low) if numpy.isinf(domain.low) else self._cdf(numpy.max(rvf_domain.low, domain.low))
+        high = self._cdf(rvf_domain.high) if numpy.isinf(domain.high) else self._cdf(
+            numpy.min(rvf_domain.high, domain.high))
+
+        n = max(100, num) * 2
+        x_array = numpy.random.uniform(low, high, size=n)
+        random_array = self.ppf(x_array)
+        rv = random_array.y[:num]
+        if num == 1:
+            return rv[0]
+        else:
+            return rv
+
     @abstractmethod
     def mean(self) -> float:
         """均值"""
@@ -143,15 +176,6 @@ class ABCDistribution(ABC):
     def std(self) -> float:
         """标准差"""
         pass
-
-    def pdf_domain(self) -> Domain:
-        """
-        pdf函数定义域
-        """
-        low = self._ppf(0 + eps)
-        high = self._ppf(1 - eps)
-        d = Domain(low, high)
-        return d
 
     # def nmean(self) -> float:
     #     def f(x):

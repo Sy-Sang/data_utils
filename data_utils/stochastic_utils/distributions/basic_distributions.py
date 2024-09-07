@@ -92,12 +92,18 @@ class LogNormalDistribution(ABCDistribution):
             return numpy.nan
 
     def _pdf(self, x):
-        c = 1 / (x * self.sigma * numpy.sqrt(2 * numpy.pi))
-        e = -((numpy.log(x) - self.mu) ** 2) / (2 * self.sigma ** 2)
-        return c * numpy.exp(e)
+        if x > 0:
+            c = 1 / (x * self.sigma * numpy.sqrt(2 * numpy.pi))
+            e = -((numpy.log(x) - self.mu) ** 2) / (2 * self.sigma ** 2)
+            return c * numpy.exp(e)
+        else:
+            return 0
 
     def _cdf(self, x):
-        return 0.5 * (1 + math.erf((numpy.log(x) - self.mu) / (self.sigma * numpy.sqrt(2))))
+        if x > 0:
+            return 0.5 * (1 + math.erf((numpy.log(x) - self.mu) / (self.sigma * numpy.sqrt(2))))
+        else:
+            return 0
 
     def mean(self):
         return numpy.exp(self.mu + (self.sigma ** 2) / 2)
@@ -215,7 +221,9 @@ class StudentTDistribution(ABCDistribution):
 
 
 if __name__ == "__main__":
-    pass
+    lnd = WeibullDistribution(1, 1)
+    print(lnd.limited_rvf([0, 100], 20))
+
     # print(correlated_rvf([
     #     [NormalDistribution(0, 1), 1],
     #     [NormalDistribution(0, 1), 0.5],
