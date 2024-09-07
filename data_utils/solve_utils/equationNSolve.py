@@ -95,7 +95,12 @@ def gradient_descent(
 
 if __name__ == "__main__":
     def f(x):
-        return x ** 2 + 1
+        return x ** 2
 
 
-    print(gradient_descent(f, [0.1], [10.0], epoch=1000, optimizer=Adam))
+    def g(x):
+        return x ** 2 - 10
+
+
+    print(f(gradient_descent(f, [0.2], [10.0], epoch=2000, optimizer=Adam, timer=True)))
+    print(g(newton_method(g, 0.0)[0]))

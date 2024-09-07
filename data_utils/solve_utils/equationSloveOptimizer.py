@@ -33,7 +33,7 @@ class Optimizer:
     def __init__(self, *args, **kwargs):
         pass
 
-    def next(self, grad: numpy.ndarray) -> numpy.ndarray:
+    def next(self, grad: numpy.ndarray, *args, **kwargs) -> numpy.ndarray:
         """
         梯度下降
         """
@@ -44,6 +44,7 @@ class Adam(Optimizer):
     """adam优化器"""
 
     def __init__(self, x: numpy.ndarray, beta1: float = 0.9, beta2: float = 0.999, epsilon: float = 1e-8):
+        super().__init__()
         self.beta1 = beta1
         self.beta2 = beta2
         self.epsilon = epsilon
@@ -53,7 +54,7 @@ class Adam(Optimizer):
         self.v_hat = 0
         self.t = 0
 
-    def next(self, grad: numpy.ndarray) -> numpy.ndarray:
+    def next(self, grad: numpy.ndarray, *args, **kwargs) -> numpy.ndarray:
         self.t += 1
         self.m = self.beta1 * self.m + (1 - self.beta1) * numpy.array(grad)
         self.v = self.beta2 * self.v + (1 - self.beta2) * (numpy.array(grad) ** 2)
