@@ -221,8 +221,9 @@ class StudentTDistribution(ABCDistribution):
 
 
 if __name__ == "__main__":
-    lnd = WeibullDistribution(1, 1)
-    print(lnd.limited_rvf([0, 100], 20))
+    lnd = WeibullDistribution(0.1, 5)
+    print(lnd.limited_rvf([0, numpy.inf], 20).tolist())
+    # print(lnd.limited_rvf([0, numpy.inf], 20))
 
     # print(correlated_rvf([
     #     [NormalDistribution(0, 1), 1],

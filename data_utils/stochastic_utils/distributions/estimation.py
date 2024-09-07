@@ -24,6 +24,8 @@ from data_utils.stochastic_utils.distributions.basic_distributions import Normal
 from data_utils.stochastic_utils.distributions.nonParametricDistribution import HistogramDist, LogHisDist, \
     SmoothHisDist
 from easy_utils.number_utils import calculus_utils
+from data_utils.solve_utils.equationNSolve import gradient_descent
+
 from easy_datetime.temporal_utils import timer
 
 # 外部模块
@@ -51,7 +53,10 @@ def moment_ed(
         x_len: int = None,
         init_x: Union[list, tuple, numpy.ndarray] = None,
         *args, **kwargs
-) -> tuple[ABCDistribution, list, numpy.ndarray]:
+) -> tuple[ABCDistribution, list]:
+    """
+    参数估计至指定阶距
+    """
     if init_x is None:
         init_param = []
         for item in dist.parameter_range.items():
@@ -65,9 +70,10 @@ def moment_ed(
         return numpy.array([_dist.__getattribute__(k)() for k in target.keys()])
 
     target_moment = numpy.array([float(i) for i in target.values()])
-    guess, adam_param = calculus_utils.adam_method(moment, x, target_moment, diff, lr, epoch, loss="mae")
+    # guess, adam_param = calculus_utils.adam_method(moment, x, target_moment, diff, lr, epoch, loss="mae")
+    guess = gradient_descent(moment, x, target_moment, diff=diff, lr=lr, epoch=epoch)
     new_dist = dist(*[float(i) for i in guess])
-    return new_dist, [float(new_dist.__getattribute__(k)()) for k in target.keys()], adam_param
+    return new_dist, [float(new_dist.__getattribute__(k)()) for k in target.keys()]
 
 
 def sang_ed(

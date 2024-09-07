@@ -147,19 +147,18 @@ class ABCDistribution(ABC):
         else:
             return rv
 
-    def limited_rvf(self, domain_list: Union[list, tuple] = (0, 1), num: int = 100):
+    def limited_rvf(self, domain_list: Union[list, tuple] = (0, 1), num: int = 100) -> Union[numpy.ndarray, float]:
         """
         给定范围的随机数
         """
         rvf_domain = self.pdf_domain()
         domain = Domain(domain_list[0], domain_list[1])
 
-        low = self._cdf(rvf_domain.low) if numpy.isinf(domain.low) else self._cdf(numpy.max(rvf_domain.low, domain.low))
-        high = self._cdf(rvf_domain.high) if numpy.isinf(domain.high) else self._cdf(
-            numpy.min(rvf_domain.high, domain.high))
+        low = rvf_domain.low if numpy.isinf(domain.low) else numpy.max([rvf_domain.low, domain.low])
+        high = rvf_domain.high if numpy.isinf(domain.high) else numpy.min([rvf_domain.high, domain.high])
 
         n = max(100, num) * 2
-        x_array = numpy.random.uniform(low, high, size=n)
+        x_array = numpy.random.uniform(self._cdf(low), self._cdf(high), size=n)
         random_array = self.ppf(x_array)
         rv = random_array.y[:num]
         if num == 1:
