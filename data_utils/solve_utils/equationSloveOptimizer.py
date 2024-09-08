@@ -20,6 +20,7 @@ from collections import namedtuple
 from abc import ABC, abstractmethod
 
 # 项目模块
+from easy_utils.number_utils.number_utils import Eps
 
 # 外部模块
 import numpy
@@ -35,15 +36,15 @@ class Optimizer:
 
     def next(self, grad: numpy.ndarray, *args, **kwargs) -> numpy.ndarray:
         """
-        梯度下降
+        梯度下降时的优化计算
         """
         return grad
 
 
 class Adam(Optimizer):
-    """adam优化器"""
+    """梯度下降求解方程组的adam优化器"""
 
-    def __init__(self, x: numpy.ndarray, beta1: float = 0.9, beta2: float = 0.999, epsilon: float = 1e-8):
+    def __init__(self, x: numpy.ndarray, beta1: float = 0.9, beta2: float = 0.999, epsilon: float = Eps):
         super().__init__()
         self.beta1 = beta1
         self.beta2 = beta2

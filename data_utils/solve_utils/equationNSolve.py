@@ -102,5 +102,5 @@ if __name__ == "__main__":
         return x ** 2 - 10
 
 
-    print(f(gradient_descent(f, [0.2], [10.0], epoch=2000, optimizer=Adam, timer=True)))
+    print(f(gradient_descent(f, [0.1], [10.0], epoch=2000, optimizer=Adam, timer=True)))
     print(g(newton_method(g, 0.0)[0]))
