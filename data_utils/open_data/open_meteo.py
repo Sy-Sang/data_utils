@@ -26,7 +26,6 @@ from easy_datetime.timestamp import TimeStamp
 import numpy
 import httpx
 
-
 # 代码块
 
 HistoricalRes = namedtuple('HistoricalRes', [
@@ -40,6 +39,7 @@ HistoricalRes = namedtuple('HistoricalRes', [
     "hourly_units",
     "hourly",
 ])
+
 
 class HistoricalDim:
     """
@@ -126,9 +126,10 @@ if __name__ == "__main__":
     # from data_utils.random_utils.basic_distributions import WeibullDistribution
     # from data_utils.serial_utils.series_trans_utils import MinMax
     #
-    # data = historical(
-    #     100, 40, "2024-1-1", "2024-2-1", HistoricalDim.wind_speed_100m
-    # ).hourly[HistoricalDim.wind_speed_100m]
+    data = historical(
+        100, 40, "2024-1-1", "2024-2-1", HistoricalDim.wind_speed_100m
+    ).hourly[HistoricalDim.wind_speed_100m]
+    print(data)
     #
     # wd = WeibullDistribution(1.78952, 4.14362)
     #

@@ -32,6 +32,20 @@ import numpy
 Eps = numpy.finfo(float).eps
 
 
+def print_loss(f):
+    """是否打印损失"""
+
+    def wrapper(*args, **kwargs):
+        s, l = f(*args, **kwargs)
+        if "print_loss" in kwargs.keys() and kwargs["print_loss"] is True:
+            return s, l
+        else:
+            return s
+
+    return wrapper
+
+
+@print_loss
 def newton_method(f: callable, x0: Union[float, int, decimal.Decimal, numpy.floating],
                   tol=1e-6, max_iter=100, dx=1e-6, *args, **kwargs) -> tuple[float, float]:
     """
@@ -56,6 +70,60 @@ def newton_method(f: callable, x0: Union[float, int, decimal.Decimal, numpy.floa
 
 
 @timer
+def bfgs(
+        f: callable,
+        x0: Union[list, tuple, numpy.ndarray],
+        eps: float = 1e-6,
+        tol: float = 1e-6,
+        epoch: int = 1000,
+        *args, **kwargs
+):
+    """
+    拟牛顿法
+    """
+
+    def finite_diff_gradient(f, x, eps=1e-8):
+        """使用有限差分计算梯度"""
+        grad = numpy.zeros_like(x)
+        fx = f(x)
+        for i in range(len(x)):
+            x_eps = numpy.array(x, dtype=float)
+            x_eps[i] += eps
+            grad[i] = (f(x_eps) - fx) / eps
+        return grad
+
+    n = len(x0)
+    x = numpy.array(x0).astype(float)
+    I = numpy.eye(n)  # 单位矩阵
+    H = I  # 初始化为单位矩阵的逆
+    grad = finite_diff_gradient(f, x, eps)
+    for i in range(epoch):
+        if numpy.linalg.norm(grad) < tol:
+            break
+
+        p = -H.dot(grad)
+        alpha = 1
+        while f(x + alpha * p) > f(x) + 1e-4 * alpha * grad.dot(p):
+            alpha *= 0.5  # 缩小步长
+        x_new = x + alpha * p
+        grad_new = finite_diff_gradient(f, x_new)
+        # BFGS 公式更新 H 矩阵
+        s = x_new - x
+        y = grad_new - grad
+
+        if numpy.dot(s, y) > 1e-10:  # 确保数值稳定性，防止除以零或接近零的情况
+            rho = 1.0 / numpy.dot(y, s)
+            Hy = H.dot(y)
+            H = (I - rho * numpy.outer(s, y)).dot(H).dot(I - rho * numpy.outer(y, s)) + rho * numpy.outer(s, s)
+
+        x = x_new
+        grad = grad_new
+
+    return x
+
+
+@timer
+@print_loss
 def gradient_descent(
         f: callable,
         x: Union[list, tuple, numpy.ndarray],
@@ -90,17 +158,18 @@ def gradient_descent(
         x -= optimized_grad * lr
         loss = loss_function(f(x), y)
         loss_list.append([ep, loss])
-    return x
+    return x, loss_list
 
 
 if __name__ == "__main__":
     def f(x):
-        return x ** 2
+        return x ** 2 + x + 1
 
 
     def g(x):
         return x ** 2 - 10
 
 
-    print(f(gradient_descent(f, [0.1], [10.0], epoch=2000, optimizer=Adam, timer=True)))
-    print(g(newton_method(g, 0.0)[0]))
+    print(gradient_descent(f, [0], [10.0], epoch=200, optimizer=Adam, timer=True, print_loss=True))
+    # print(g(bfgs(g, [1], timer=True)))
+    print(newton_method(g, 0.0))
