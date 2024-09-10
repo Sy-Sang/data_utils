@@ -39,6 +39,9 @@ class TimeSeriesProcess(ABC):
         self.order = None
 
     def noise(self, noise_dist: ABCDistribution = None, sigma: float = 0, num: int = 100):
+        """
+        生成噪音序列, 通常为正态分布, 可以通过使用<noise_dist=True>指定噪音分布
+        """
         if noise_dist is None:
             noise_dist = NormalDistribution(0, sigma)
 
