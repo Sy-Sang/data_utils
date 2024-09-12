@@ -135,7 +135,7 @@ def gradient_descent(
         epoch: int = 200,
         *args,
         **kwargs
-) -> numpy.ndarray:
+) -> tuple:
     """基础梯度下降求解"""
     grad = numpy.zeros(len(x))
     x = numpy.array(x).astype(float)
