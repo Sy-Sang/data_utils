@@ -42,7 +42,7 @@ class MAProcess(TimeSeriesProcess):
         eps = NormalDistribution(0, self.sigma).rvf(num) if use_eps is True else numpy.zeros(num)
         y = numpy.concatenate((first, eps))
         for t in range(max(self.order, len(first)), num):
-            y[t] = self.mu + eps[t] + sum(self.theta[i] * y[t - 1 - i] for i in range(self.order))
+            y[t] = self.mu + eps[t] + sum(self.theta[i] * eps[t - 1 - i] for i in range(self.order))
         return y
 
 
