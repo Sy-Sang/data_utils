@@ -31,7 +31,6 @@ from sklearn.preprocessing import PowerTransformer
 # 代码块
 def to_standard_normal_distribution(
         data: Union[list, tuple, numpy.ndarray],
-        noize: float = 0
 ) -> numpy.ndarray:
     """
     将数据变为标准正态分布
@@ -71,16 +70,25 @@ if __name__ == "__main__":
     from data_utils.stochastic_utils.distributions.basic_distributions import WeibullDistribution, LogNormalDistribution
     from matplotlib import pyplot
 
-    w = WeibullDistribution(2, 5)
-    rw = w.rvf(1000)
+    w = WeibullDistribution(1, 20)
+    rw = w.rvf(100)
+
+    pyplot.plot(
+        to_standard_normal_distribution(rw)
+    )
+    pyplot.plot(
+        to_standard_normal_distribution(rw)
+    )
+    pyplot.show()
+
     # print(uniformed(w.rvf(100)).tolist())
     # rn = to_standard_normal_distribution(rw)
     # pyplot.plot(rw)
     # pyplot.plot(rn)
     # pyplot.show()
     # print(rn.tolist())
-    rl = convert_to_dist(rw, LogNormalDistribution(0, 1))
-    pyplot.plot(rw)
-    pyplot.plot(rl)
-    pyplot.show()
-    print(rl.tolist())
+    # rl = convert_to_dist(rw, LogNormalDistribution(0, 1))
+    # pyplot.plot(rw)
+    # pyplot.plot(rl)
+    # pyplot.show()
+    # print(rl.tolist())
