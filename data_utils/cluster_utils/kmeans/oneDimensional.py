@@ -34,8 +34,8 @@ def find_cluster(data: Union[list, tuple, numpy.ndarray], k: int = 3):
     cluster = KMeans(n_clusters=k, random_state=0)
     cluster.fit(x.reshape(len(x), -1))
     label_index = numpy.argsort(flatten(cluster.cluster_centers_))
-    label = [label_index.tolist().index(i) for i in cluster.labels_]
+    sorted_label = [label_index.tolist().index(i) for i in cluster.labels_]
 
 
 if __name__ == "__main__":
-    pass
+    data = numpy.random.uniform(0, 100, 10)
