@@ -33,8 +33,8 @@ def correlated_series(data: Union[list, tuple, numpy.ndarray], dist: ABCDistribu
     """生成满足相关性的序列"""
     pearson = max(min(pearson, 1), -1)
     base = numpy.array(data).astype(float)
-    rvf = NormalDistribution(0, 1).rvf(len(data))
-    x = pearson * base + (1 - pearson ** 2) ** 0.5 * rvf
+    rv = NormalDistribution(0, 1).rvf(len(data))
+    x = pearson * base + (1 - pearson ** 2) ** 0.5 * rv
     return convert_to_dist(x, dist)
 
 
@@ -56,13 +56,13 @@ if __name__ == "__main__":
     from data_utils.stochastic_utils.distributions.basic_distributions import NormalDistribution, WeibullDistribution, \
         LogNormalDistribution
 
-    from data_utils.stochastic_utils.random_process.timeseriesProcess import ARProcess
+    from data_utils.stochastic_utils.random_process.timeSeriesProcess.ar import ARProcess
 
     d = random_correlated_series([
         WeibullDistribution(2, 5),
-        NormalDistribution(2, 5),
-        NormalDistribution(2, 3)
-    ], [1, -0.9, 0.7],
-        data=ARProcess([1.4771, -0.54847], 0.312868).random_process(0, 768)
+        WeibullDistribution(2, 5),
+        WeibullDistribution(2, 5)
+    ], [-0.5, -0.5, -0.5],
+        data=ARProcess(0, [0.9, 0.1], 1).next(num=100)
     )
     print(d.tolist())

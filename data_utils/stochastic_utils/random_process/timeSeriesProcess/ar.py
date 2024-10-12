@@ -34,15 +34,19 @@ import numpy
 class ARProcess(TimeSeriesProcess):
     """自回归过程"""
 
-    def __init__(self, mu: float = 0, phi: Union[list, tuple, numpy.ndarray] = [0.1], sigma: float = 1):
+    def __init__(self, mu: float = 0, phi=None, sigma: float = 1):
         super().__init__(mu=mu, phi=phi, sigma=sigma)
+        if phi is None:
+            phi = [0.1]
         self.mu = mu
         self.phi = numpy.array(phi).astype(float)
         self.sigma = sigma
         self.order = len(self.phi)
 
-    def next(self, first: Union[list, tuple, numpy.ndarray], num: int = 1, use_eps: bool = True, *args,
+    def next(self, first=None, num: int = 1, use_eps: bool = True, *args,
              **kwargs):
+        if first is None:
+            first = [0]
         first = numpy.array(first).astype(float)
         eps = NormalDistribution(0, self.sigma).rvf(num) if use_eps is True else numpy.zeros(num)
         y = numpy.concatenate((first, eps))

@@ -20,6 +20,7 @@ from typing import Union, Self
 from collections import namedtuple
 
 # 项目模块
+from easy_utils.obj_utils.enumerable_utils import flatten
 
 # 外部模块
 import numpy
@@ -138,37 +139,11 @@ class KmeansCluster(DataTransformator):
     @classmethod
     def f(cls, x: Union[list, tuple, numpy.ndarray], k: int = 3, *args, **kwargs):
         x = numpy.array(x).astype(float)
-        sort_index = numpy.argsort(x)
-        sorted_x = x[sort_index]
-        k = KMeans(n_clusters=k, random_state=0)
-        k.fit(sorted_x.reshape(len(x), -1))
-        label = 0
-        label_list = []
-        label_mean = {}
-        mean_index = 0
-        for i in range(len(k.labels_)):
-            if i == 0:
-                pass
-            elif k.labels_[i] == k.labels_[i - 1]:
-                pass
-            else:
-                mean = numpy.mean(sorted_x[mean_index:i - 1])
-                label_mean[int(label)] = mean
-                mean_index = i
-                label += 1
-            label_list.append(label)
-        label_mean[int(label)] = numpy.mean(sorted_x[mean_index:])
-        resort_index = numpy.argsort(sort_index)
-        label_array = numpy.array(label_list)[resort_index]
-        return label_array.astype(int), cls.inf, [label_mean]
-
-    @classmethod
-    def inf(cls, ylist: Union[list, tuple, numpy.ndarray], *args, **kwargs) -> numpy.ndarray:
-        xlist = []
-        dic: dict = args[0]
-        for i in ylist:
-            xlist.append(dic[int(i)])
-        return numpy.array(xlist).astype(float)
+        k = KMeans(n_clusters=k)
+        k.fit(x.reshape(len(x), -1))
+        label_index = numpy.argsort(flatten(k.cluster_centers_))
+        sorted_label = numpy.array([label_index.tolist().index(i) for i in k.labels_]).astype(int)
+        return sorted_label, cls.identity, [x]
 
 
 if __name__ == "__main__":
@@ -176,5 +151,4 @@ if __name__ == "__main__":
     k, f, p = KmeansCluster.f(data, k=3)
     print(data.tolist())
     print(k)
-    print(p)
-    print(KmeansCluster.inf(k, *p).tolist())
+    print(KmeansCluster.identity(p))

@@ -20,8 +20,8 @@ from typing import Union, Self
 # 项目模块
 from easy_datetime.timestamp import TimeStamp, TimeLine
 from easy_datetime.temporal_utils import timer
-from data_series import DataSeries
-from series_trans_utils import ColumnTransRec, DataTransformator, MinMax
+from data_utils.serial_utils.data_series import DataSeries
+from data_utils.serial_utils.series_trans_utils import ColumnTransRec, DataTransformator, MinMax
 
 # 外部模块
 import numpy
