@@ -133,7 +133,7 @@ class RobustScaler(DataTransformator):
 
 class KmeansCluster(DataTransformator):
     """
-    kmeans聚类 #还原排序时有错需更改
+    kmeans聚类
     """
 
     @classmethod
