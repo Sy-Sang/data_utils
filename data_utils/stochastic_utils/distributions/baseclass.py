@@ -58,6 +58,10 @@ class ABCDistribution(ABC):
     def __repr__(self):
         return self.__str__()
 
+    def clone(self) -> Self:
+        """深度拷贝克隆"""
+        return copy.deepcopy(self)
+
     def _2d_curve(self, f: callable, *args, first, end, step, num, **kwargs) -> Union[float, DistCurve]:
         """
         形成2维曲线
