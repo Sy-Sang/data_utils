@@ -111,7 +111,7 @@ class TimeSeries(DataSeries):
         array = self.get_array()
         for arg in args:
             te_array = numpy.array([
-                i.map[arg] for i in self.time_stamp.data
+                i.pdf_map[arg] for i in self.time_stamp.data
             ])
             array = numpy.column_stack((array, te_array))
         return array
