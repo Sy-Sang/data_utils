@@ -83,8 +83,8 @@ class ABCDistribution(ABC):
                         ppf_xarray = number_utils.EasyFloat.finterval(first, end, num, True)
                     else:
                         ppf_xarray = number_utils.EasyFloat.frange(first, end, step, True)
-                    xarray = numpy.array([self._ppf(x) for x in ppf_xarray])
-            c = DistCurve(xarray, numpy.array([f(x) for x in xarray]))
+                    xarray = numpy.array([self._ppf(x) for x in ppf_xarray]).astype(float)
+            c = DistCurve(xarray, numpy.array([f(x) for x in xarray]).astype(float))
             # c = curve(xarray, f(xarray))
             return c
 
