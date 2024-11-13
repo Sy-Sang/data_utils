@@ -20,6 +20,7 @@ from collections import namedtuple
 
 # 项目模块
 from data_utils.stochastic_utils.distributions.baseclass import ABCDistribution
+from data_utils.stochastic_utils.distributions.basic_distributions import NormalDistribution
 from data_utils.stochastic_utils.distributions.deform import convert_to_dist
 from easy_utils.number_utils.float_utils import Eps
 
