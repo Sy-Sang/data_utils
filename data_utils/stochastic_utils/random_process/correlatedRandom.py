@@ -34,8 +34,9 @@ def correlated_series(data: Union[list, tuple, numpy.ndarray], dist: ABCDistribu
     """生成满足相关性的序列"""
     pearson = max(min(pearson, 1), -1)
     base = numpy.array(data).astype(float)
+    z_scored_base = convert_to_dist(base, NormalDistribution(0, 1))
     rv = NormalDistribution(0, 1).rvf(len(data))
-    x = pearson * base + (1 - pearson ** 2) ** 0.5 * rv
+    x = pearson * z_scored_base + (1 - pearson ** 2) ** 0.5 * rv
     return convert_to_dist(x, dist)
 
 
