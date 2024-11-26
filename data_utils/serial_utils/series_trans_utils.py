@@ -60,6 +60,21 @@ class DataTransformator:
 
 
 class MinMax(DataTransformator):
+
+    @classmethod
+    def g(cls, xlist: Union[list, tuple, numpy.ndarray],
+          a: Union[float, int, decimal.Decimal, numpy.floating] = 0,
+          b: Union[float, int, decimal.Decimal, numpy.floating] = 1,
+          eps: Union[float, int, decimal.Decimal, numpy.floating] = 0,
+          *args, **kwargs):
+        xarray = numpy.array(xlist)
+        if max(xarray) == min(xarray):
+            yarray = numpy.zeros(len(xlist))
+            return yarray
+        else:
+            yarray = (xarray - min(xarray)) * (b - a - 2 * eps) / (max(xarray) - min(xarray)) + a + eps
+            return yarray
+
     @classmethod
     def f(cls, xlist: Union[list, tuple, numpy.ndarray],
           a: Union[float, int, decimal.Decimal, numpy.floating] = 0,
