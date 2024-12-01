@@ -62,7 +62,7 @@ class DataTransformator:
 class MinMax(DataTransformator):
 
     @classmethod
-    def g(cls, xlist: Union[list, tuple, numpy.ndarray],
+    def n(cls, xlist: Union[list, tuple, numpy.ndarray],
           a: Union[float, int, decimal.Decimal, numpy.floating] = 0,
           b: Union[float, int, decimal.Decimal, numpy.floating] = 1,
           eps: Union[float, int, decimal.Decimal, numpy.floating] = 0,
@@ -103,6 +103,19 @@ class MinMax(DataTransformator):
 class ZScore(DataTransformator):
 
     @classmethod
+    def n(cls, x: Union[list, tuple, numpy.ndarray],
+          miu: float = 0,
+          sigma: float = 1,
+          *args, **kwargs):
+        if numpy.std(x, ddof=1) == 0:
+            y = numpy.array([miu] * len(x))
+            return y
+        else:
+            z = (numpy.array(x) - numpy.mean(x)) / numpy.std(x, ddof=1)
+            y = z * sigma + miu
+            return y
+
+    @classmethod
     def f(cls, x: Union[list, tuple, numpy.ndarray],
           miu: float = 0,
           sigma: float = 1,
@@ -127,6 +140,20 @@ class ZScore(DataTransformator):
 
 
 class RobustScaler(DataTransformator):
+
+    @classmethod
+    def n(cls, x: Union[list, tuple, numpy.ndarray], q0=25, *args, **kwargs):
+        median = numpy.median(x)
+        q1 = numpy.percentile(x, q0)
+        q3 = numpy.percentile(x, 100 - q0)
+        iqr = q3 - q1
+        if iqr == 0:
+            y = numpy.zeros(len(x))
+            return y
+        else:
+            y = (numpy.array(x) - median) / iqr
+            return y
+
     @classmethod
     def f(cls, x: Union[list, tuple, numpy.ndarray], *args, **kwargs):
         median = numpy.median(x)
@@ -150,6 +177,15 @@ class KmeansCluster(DataTransformator):
     """
     kmeans聚类
     """
+
+    @classmethod
+    def n(cls, x: Union[list, tuple, numpy.ndarray], k: int = 3, *args, **kwargs):
+        x = numpy.array(x).astype(float)
+        k = KMeans(n_clusters=k)
+        k.fit(x.reshape(len(x), -1))
+        label_index = numpy.argsort(flatten(k.cluster_centers_))
+        sorted_label = numpy.array([label_index.tolist().index(i) for i in k.labels_]).astype(int)
+        return sorted_label
 
     @classmethod
     def f(cls, x: Union[list, tuple, numpy.ndarray], k: int = 3, *args, **kwargs):
