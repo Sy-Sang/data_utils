@@ -38,6 +38,13 @@ class DataTransformator:
     """
 
     @classmethod
+    def n(cls, xlist: Union[list, tuple, numpy.ndarray], *args, **kwargs) -> numpy.ndarray:
+        """
+        变形函数
+        """
+        pass
+
+    @classmethod
     def f(cls, xlist: Union[list, tuple, numpy.ndarray], *args, **kwargs) -> tuple[numpy.ndarray, callable, list]:
         """
         变形函数
