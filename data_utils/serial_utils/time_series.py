@@ -276,7 +276,7 @@ class TimeSeries(DataSeries):
         y = self.get_array()[index]
         return y
 
-    def where(self, symbol, num, column_index=0):
+    def where(self, symbol, num, column_index=0) -> Self:
         """
         检索
         :param symbol:
