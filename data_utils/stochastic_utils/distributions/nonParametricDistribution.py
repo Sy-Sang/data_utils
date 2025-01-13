@@ -54,11 +54,14 @@ def freedam_diaconis(data) -> int:
     """
     Freedman-Diaconis 方法
     """
-    q25, q75 = numpy.percentile(data, [25, 75])
-    n = len(data)
-    bin_width = 2 * (q75 - q25) / numpy.cbrt(n)
-    bin_count = int((numpy.max(data) - numpy.min(data)) / bin_width)
-    return bin_count if bin_count < n / 2 else int(n ** 0.5)
+    if numpy.max(data) == numpy.min(data):
+        return 1
+    else:
+        q25, q75 = numpy.percentile(data, [25, 75])
+        n = len(data)
+        bin_width = 2 * (q75 - q25) / numpy.cbrt(n)
+        bin_count = int((numpy.max(data) - numpy.min(data)) / bin_width)
+        return bin_count if bin_count < n / 2 else int(n ** 0.5)
 
 
 class GaussianKernel(NormalDistribution):
