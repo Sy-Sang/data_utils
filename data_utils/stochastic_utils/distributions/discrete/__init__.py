@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""离散分布"""
+
 __author__ = "Sy,Sang"
 __version__ = ""
 __license__ = "GPLv3"
