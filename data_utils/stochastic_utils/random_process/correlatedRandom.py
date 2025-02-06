@@ -43,7 +43,7 @@ def correlated_series(data: Union[list, tuple, numpy.ndarray], dist: ABCDistribu
 def random_correlated_series(dist: list[ABCDistribution], pearson: list[float], num: int = 100,
                              data: Union[list, tuple, numpy.ndarray] = None) -> numpy.ndarray:
     """生成满足相关性的随机数表"""
-    x = NormalDistribution(0, 1).rvf(num) if data is None else numpy.array(data).astype(float)
+    x = numpy.sort(NormalDistribution(0, 1).rvf(num)) if data is None else numpy.array(data).astype(float)
     r = numpy.array([])
     for i, d in enumerate(dist):
         y = correlated_series(x, d, pearson[i])
