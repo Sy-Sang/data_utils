@@ -29,13 +29,14 @@ from sklearn.preprocessing import PowerTransformer
 
 
 # 代码块
-def to_standard_normal_distribution(
+
+def to_standard_normal_distribution_old(
         data: Union[list, tuple, numpy.ndarray],
 ) -> numpy.ndarray:
     """
-    将数据变为标准正态分布
+    将数据变为标准正态分布(会产生关联相关性的GBM路径在末尾重合的奇怪问题)
     """
-    array = numpy.array(data)
+    array = numpy.array(data).astype(float)
     sort_index = numpy.argsort(array)
     nd = NormalDistribution(numpy.mean(array), numpy.std(array, ddof=1))
     q = numpy.sort(nd.rvf(len(array)))
@@ -43,8 +44,27 @@ def to_standard_normal_distribution(
     for i in range(len(array)):
         nd_list[sort_index[i]] = q[i]
 
-    snd, _0, _1 = ZScore.f(nd_list)
-    return numpy.array(snd)
+    nd_array = numpy.array(nd_list)
+    mu = numpy.mean(nd_array)
+    std = numpy.std(nd_array, ddof=1)
+
+    return (nd_array - mu) / std
+
+
+def to_standard_normal_distribution(
+        data: Union[list, tuple, numpy.ndarray],
+) -> numpy.ndarray:
+    """
+    将数据变为标准正态分布
+    """
+    r = numpy.sort(NormalDistribution(0, 1).rvf(len(data)))
+    data_array = numpy.array(data)
+    data_index = numpy.argsort(data_array)
+    nd_list = [0] * len(data)
+    for i, di in enumerate(data_index):
+        nd_list[di] = r[i]
+
+    return numpy.array(nd_list).astype(float)
 
 
 def uniformed(
@@ -72,12 +92,21 @@ if __name__ == "__main__":
 
     w = WeibullDistribution(1, 20)
     rw = w.rvf(100)
+    rw2 = w.rvf(100)
 
     pyplot.plot(
-        to_standard_normal_distribution(rw)
+        numpy.sort(to_standard_normal_distribution(rw))
     )
     pyplot.plot(
-        to_standard_normal_distribution(rw)
+        numpy.sort(to_standard_normal_distribution(rw2))
+    )
+    pyplot.show()
+
+    pyplot.plot(
+        numpy.sort(to_standard_normal_distribution_old(rw))
+    )
+    pyplot.plot(
+        numpy.sort(to_standard_normal_distribution_old(rw2))
     )
     pyplot.show()
 

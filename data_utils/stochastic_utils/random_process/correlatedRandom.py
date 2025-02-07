@@ -32,7 +32,7 @@ import numpy
 
 def correlated_series(data: Union[list, tuple, numpy.ndarray], dist: ABCDistribution, pearson: float):
     """生成满足相关性的序列"""
-    pearson = max(min(pearson, 1), -1)
+    pearson = numpy.clip(pearson, -1, 1)
     base = numpy.array(data).astype(float)
     z_scored_base = convert_to_dist(base, NormalDistribution(0, 1))
     rv = NormalDistribution(0, 1).rvf(len(data))
@@ -43,7 +43,7 @@ def correlated_series(data: Union[list, tuple, numpy.ndarray], dist: ABCDistribu
 def random_correlated_series(dist: list[ABCDistribution], pearson: list[float], num: int = 100,
                              data: Union[list, tuple, numpy.ndarray] = None) -> numpy.ndarray:
     """生成满足相关性的随机数表"""
-    x = numpy.sort(NormalDistribution(0, 1).rvf(num)) if data is None else numpy.array(data).astype(float)
+    x = NormalDistribution(0, 1).rvf(num) if data is None else numpy.array(data).astype(float)
     r = numpy.array([])
     for i, d in enumerate(dist):
         y = correlated_series(x, d, pearson[i])
