@@ -29,7 +29,7 @@ import numpy as np
 eps = np.finfo(float).eps
 
 
-class AbstractDist(ABC):
+class AbstractDistribution(ABC):
     """概率分布(抽象类)"""
 
     def clone(self) -> Self:

@@ -19,7 +19,7 @@ from typing import Union, Self
 from collections import namedtuple
 
 # 项目模块
-from data_utils.stochastic_utils.vdistributions.abstract import AbstractDist, eps
+from data_utils.stochastic_utils.vdistributions.abstract import AbstractDistribution, eps
 
 # 外部模块
 import numpy as np

@@ -20,7 +20,7 @@ from collections import namedtuple
 from abc import ABC, abstractmethod
 
 # 项目模块
-from data_utils.stochastic_utils.vdistributions.abstract import AbstractDist
+from data_utils.stochastic_utils.vdistributions.abstract import AbstractDistribution
 
 # 外部模块
 import numpy
@@ -28,15 +28,16 @@ import numpy
 
 # 代码块
 
-class DistParam:
+class DistributionParams:
     """概率分辨参数"""
 
-    def __init__(self, min: float, max: float):
+    def __init__(self, name: str, min: float, max: float):
+        self.name = name
         self.min = min
         self.max = max
 
 
-class ParameterDistribution(AbstractDist):
+class ParameterDistribution(AbstractDistribution):
     """参数分布"""
 
     def __init__(self, *args, **kwargs):
@@ -65,9 +66,20 @@ class ParameterDistribution(AbstractDist):
         pass
 
     @abstractmethod
-    def get_param_constraints(self):
+    def get_param_constraints(self) -> list[DistributionParams]:
         """获取参数范围"""
         pass
+
+    def parameter_verification(self, *args) -> numpy.ndarray[bool]:
+        """参数验证"""
+        param_list = self.get_param_constraints()
+        verification_list = []
+        for i, arg in enumerate(args):
+            if param_list[i].min <= arg <= param_list[i].max:
+                verification_list.append(True)
+            else:
+                verification_list.append(False)
+        return numpy.asarray(verification_list)
 
 
 if __name__ == "__main__":
