@@ -51,17 +51,17 @@ class ParameterDistribution(AbstractDistribution):
         return str({self.__class__.__name__: self.kwargs})
 
     @abstractmethod
-    def ppf(self, *args, **kwargs) -> numpy.ndarray:
+    def ppf(self, *args, **kwargs):
         """分位数函数"""
         pass
 
     @abstractmethod
-    def pdf(self, *args, **kwargs) -> numpy.ndarray:
+    def pdf(self, *args, **kwargs):
         """概率密度函数"""
         pass
 
     @abstractmethod
-    def cdf(self, *args, **kwargs) -> numpy.ndarray:
+    def cdf(self, *args, **kwargs):
         """累计概率函数"""
         pass
 

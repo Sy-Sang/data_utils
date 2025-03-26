@@ -45,17 +45,17 @@ class AbstractDistribution(ABC):
         pass
 
     @abstractmethod
-    def ppf(self, *args, **kwargs) -> numpy.ndarray:
+    def ppf(self, *args, **kwargs) -> Union[float, numpy.ndarray]:
         """分位数函数"""
         pass
 
     @abstractmethod
-    def pdf(self, *args, **kwargs) -> numpy.ndarray:
+    def pdf(self, *args, **kwargs) -> Union[float, numpy.ndarray]:
         """概率密度函数"""
         pass
 
     @abstractmethod
-    def cdf(self, *args, **kwargs) -> numpy.ndarray:
+    def cdf(self, *args, **kwargs) -> Union[float, numpy.ndarray]:
         """累计概率函数"""
         pass
 
