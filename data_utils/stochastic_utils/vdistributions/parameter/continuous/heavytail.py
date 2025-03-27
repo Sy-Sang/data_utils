@@ -19,6 +19,7 @@ from typing import Union, Self
 from collections import namedtuple
 
 # 项目模块
+from easy_utils.number_utils.calculus_utils import newton_method
 from data_utils.stochastic_utils.vdistributions.abstract import eps
 from data_utils.stochastic_utils.vdistributions.parameter.abstract import ParameterDistribution, DistributionParams
 
@@ -39,7 +40,7 @@ class StudentTDistribution(ParameterDistribution):
         self.s = s
         self.v = v
 
-    def get_param_constraints(self) -> list[DistributionParams]:
+    def get_param_constraints(self, args) -> list[DistributionParams]:
         return [
             DistributionParams("u", -numpy.inf, numpy.inf),
             DistributionParams("s", 0 + eps, numpy.inf),
@@ -66,21 +67,19 @@ class StudentTDistribution(ParameterDistribution):
         result = numpy.where(x <= self.u, below, above)
         return result
 
-    def ppf(self, q, *args, **kwargs):
-        q = numpy.atleast_1d(q)
-        results = numpy.empty_like(q, dtype=float)
+    def ppf(self, x, *args, **kwargs):
+        x = numpy.atleast_1d(x)
+        results = numpy.empty_like(x, dtype=float)
 
-        a = self.u - 10 * self.s
-        b = self.u + 10 * self.s
+        for i, xi in enumerate(x):
+            def _cdf(q):
+                return self.cdf(q) - xi
 
-        for i, qi in enumerate(q):
-            def objective(x): return float(self.cdf(x) - qi)
-
-            results[i] = brentq(objective, a, b)
+            results[i], _ = newton_method(_cdf, self.u)
 
         return results if results.shape[0] > 1 else results[0]
 
 
 if __name__ == "__main__":
     s = StudentTDistribution()
-    print(s.ppf(numpy.arange(0.1, 1, 0.01)))
+    print(s.ppf(numpy.arange(0.1, 1, 0.1)))

@@ -66,13 +66,13 @@ class ParameterDistribution(AbstractDistribution):
         pass
 
     @abstractmethod
-    def get_param_constraints(self) -> list[DistributionParams]:
+    def get_param_constraints(self, args) -> list[DistributionParams]:
         """获取参数范围"""
         pass
 
-    def parameter_verification(self, *args) -> numpy.ndarray[bool]:
+    def parameter_verification(self, args) -> numpy.ndarray[bool]:
         """参数验证"""
-        param_list = self.get_param_constraints()
+        param_list = self.get_param_constraints(args)
         verification_list = []
         for i, arg in enumerate(args):
             if param_list[i].min <= arg <= param_list[i].max:

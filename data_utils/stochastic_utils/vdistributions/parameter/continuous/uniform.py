@@ -69,15 +69,15 @@ class UniformDistribution(ParameterDistribution):
         )
         return result
 
-    def get_param_constraints(self) -> list[DistributionParams]:
+    def get_param_constraints(self, args) -> list[DistributionParams]:
         return [
             DistributionParams("min", -numpy.inf, numpy.inf),
-            DistributionParams("max", self.min + eps, numpy.inf)
+            DistributionParams("max", args[0] + eps, numpy.inf)
         ]
 
 
 if __name__ == "__main__":
     u = UniformDistribution(0, 1)
-    print(u.parameter_verification(1, -2))
+    print(u.parameter_verification([-5, 0]))
     print(u.cdf([0.1, 0.2]))
     print(u.ppf([0.1, 0.2, 1]))

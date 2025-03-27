@@ -38,7 +38,7 @@ class WeibullDistribution(ParameterDistribution):
         self.beta = beta
         self.miu = miu
 
-    def get_param_constraints(self) -> list[DistributionParams]:
+    def get_param_constraints(self, args) -> list[DistributionParams]:
         return [
             DistributionParams("alpha", 0 + eps, numpy.inf),
             DistributionParams("beta", 0 + eps, numpy.inf),

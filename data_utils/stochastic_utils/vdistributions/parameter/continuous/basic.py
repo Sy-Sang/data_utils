@@ -37,7 +37,7 @@ class NormalDistribution(ParameterDistribution):
         self.mu = mu
         self.sigma = sigma
 
-    def get_param_constraints(self) -> list[DistributionParams]:
+    def get_param_constraints(self, args) -> list[DistributionParams]:
         return [
             DistributionParams("mu", -numpy.inf, numpy.inf),
             DistributionParams("sigma", 0 + eps, numpy.inf)
@@ -96,7 +96,7 @@ class ExponentialDistribution(ParameterDistribution):
         super().__init__(lam, **{"lam": lam})
         self.lam = lam
 
-    def get_param_constraints(self) -> list[DistributionParams]:
+    def get_param_constraints(self, args) -> list[DistributionParams]:
         return [DistributionParams("lam", -numpy.inf, numpy.inf)]
 
     def ppf(self, x, *args, **kwargs):
