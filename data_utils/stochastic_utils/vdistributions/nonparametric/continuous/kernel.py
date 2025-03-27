@@ -74,10 +74,10 @@ class KernelMixDist(AbstractDistribution):
             numpy.mean(matrix, axis=0), numpy.atleast_1d(numpy.mean(data[aggregation_num:]))
         ))
 
-        self.h = silverman_bandwidth(data) if h is None else h
+        h = silverman_bandwidth(data) if h is None else h
 
         self.kernels = [
-            GaussianKernel(mi, self.h) for i, mi in enumerate(m)
+            GaussianKernel(mi, h) for i, mi in enumerate(m)
         ]
 
     def __str__(self):
