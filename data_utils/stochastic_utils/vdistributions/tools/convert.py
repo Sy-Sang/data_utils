@@ -79,7 +79,7 @@ if __name__ == "__main__":
         d,
         (NormalDistribution(0, 1), 0.5),
         (NormalDistribution(0, 2), -0.5),
-        (NormalDistribution(0, 3), 0),
+        (DiscreteDistribution(numpy.arange(10).reshape(-1, 2)), 1),
     ).T)
     pyplot.show()
     print(
@@ -87,6 +87,6 @@ if __name__ == "__main__":
             d,
             (NormalDistribution(0, 1), 0.5),
             (NormalDistribution(0, 2), -0.5),
-            (NormalDistribution(0, 3), 0),
+            (DiscreteDistribution(numpy.arange(10).reshape(-1, 2)), 1),
         )
     )

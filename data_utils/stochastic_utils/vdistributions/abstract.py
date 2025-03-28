@@ -89,6 +89,10 @@ class AbstractDistribution(ABC):
         seed = np.random.uniform(0 + eps, 1, size=num)
         return self.ppf(seed)
 
+    def rvf_scalar(self):
+        """生成一个随机数"""
+        return self.rvf(1)[0]
+
 
 if __name__ == "__main__":
     pass
