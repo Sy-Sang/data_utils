@@ -22,10 +22,12 @@ from collections import namedtuple
 from easy_utils.number_utils.calculus_utils import newton_method
 from data_utils.stochastic_utils.vdistributions.abstract import AbstractDistribution, eps
 from data_utils.stochastic_utils.vdistributions.parameter.continuous.basic import NormalDistribution
-from data_utils.stochastic_utils.vdistributions.nonparametric.continuous.histogram import freedman_diaconis
+from data_utils.stochastic_utils.vdistributions.nonparametric.continuous.histogram import HistogramDistribution, \
+    freedman_diaconis
 
 # 外部模块
 from scipy.stats import t, iqr
+from scipy.interpolate import interp1d
 import numpy
 
 
@@ -59,26 +61,28 @@ class GaussianKernel(NormalDistribution):
 class KernelMixDist(AbstractDistribution):
     """混合核分布"""
 
-    def __init__(self, data, h: float = None, kernel_num: int = None):
-        data = numpy.asarray(data)
-        self.ppf_guess = numpy.mean(data)
+    def __init__(self, data, kernel_num: int = None):
+        data = numpy.sort(numpy.asarray(data))
         self.len = data.size
-        # self.h = silverman_bandwidth(data) if h is None else h
         kernel_num = freedman_diaconis(data) if kernel_num is None else kernel_num
 
-        aggregation_num = ((self.len - 1) // kernel_num) * kernel_num
+        adjusted_len = ((self.len // kernel_num) + 1) * kernel_num
+        interp = interp1d(numpy.arange(0, self.len, 1), data, fill_value="extrapolate")
+        extrapolate = interp(numpy.arange(self.len, adjusted_len, 1))
 
-        matrix = data[:aggregation_num].reshape(-1, kernel_num)
+        data = numpy.concatenate((data, extrapolate))
 
-        m = numpy.concatenate((
-            numpy.mean(matrix, axis=0), numpy.atleast_1d(numpy.mean(data[aggregation_num:]))
-        ))
+        matrix = data.reshape(-1, kernel_num)
 
-        h = silverman_bandwidth(data) if h is None else h
+        m = numpy.mean(matrix, axis=1)
+
+        h = silverman_bandwidth(m)
 
         self.kernels = [
             GaussianKernel(mi, h) for i, mi in enumerate(m)
         ]
+        self.domain_min = self.kernels[0].domain().min
+        self.domain_max = self.kernels[-1].domain().max
 
     def __str__(self):
         return str({self.__class__.__name__: self.kernels})
@@ -98,29 +102,60 @@ class KernelMixDist(AbstractDistribution):
         r = numpy.sum(m, axis=0) / len(self.kernels)
         return r
 
+    def ppf_guess(self, x):
+        """牛顿法猜测值"""
+        x = numpy.asarray(x)
+        m = numpy.stack([k.ppf(x) for k in self.kernels], axis=0)
+        r = numpy.sum(m, axis=0) / len(self.kernels)
+        return r
+
     def ppf(self, x, *args, **kwargs):
         x = numpy.atleast_1d(numpy.asarray(x))
+        guess = self.ppf_guess(x)
         results = numpy.empty_like(x, dtype=float)
 
         for i, xi in enumerate(x):
             def _cdf(q):
                 return self.cdf(q) - xi
 
-            results[i], _ = newton_method(_cdf, self.ppf_guess)
+            results[i], _ = newton_method(_cdf, guess[i])
 
-        return results if results.shape[0] > 1 else results[0]
+        return numpy.clip(results if results.shape[0] > 1 else results[0], self.domain_min, self.domain_max)
+
+
+class LogKernelMixDist(KernelMixDist):
+    def __init__(self, data, kernel_num: int = None):
+        data = numpy.asarray(data)
+        self.diff = 1 - numpy.min(data)
+        super().__init__(numpy.log(data + self.diff), kernel_num)
+
+    def ppf(self, x, *args, **kwargs):
+        """存在问题2025-3-28 12:01:59"""
+        return numpy.e ** super().ppf(x) - self.diff
+
+    def pdf(self, x, *args, **kwargs):
+        x = numpy.asarray(x) + self.diff
+        return super().pdf(numpy.log(x)) / x
+
+    def cdf(self, x, *args, **kwargs):
+        x = numpy.asarray(x) + self.diff
+        return super().cdf(numpy.log(x))
 
 
 if __name__ == "__main__":
+    from data_utils.stochastic_utils.vdistributions.parameter.continuous.lifetime import WeibullDistribution
     from matplotlib import pyplot
 
-    data = NormalDistribution(0, 1).rvf(100)
+    data = WeibullDistribution(2, 5).rvf(1000)
     print(KernelMixDist(data))
+    # print(LogKernelMixDist(data))
 
-    curve_index = 2
+    curve_index = 1
 
-    pyplot.scatter(NormalDistribution(0, 1).curves(1000)[curve_index][:, 0],
-                   NormalDistribution(0, 1).curves(1000)[curve_index][:, 1])
-    pyplot.scatter(KernelMixDist(data, h=0.9).curves(1000)[curve_index][:, 0],
-                   KernelMixDist(data, h=0.9).curves(1000)[curve_index][:, 1])
+    pyplot.scatter(WeibullDistribution(2, 5).curves(100)[curve_index][:, 0],
+                   WeibullDistribution(2, 5).curves(100)[curve_index][:, 1])
+    pyplot.scatter(LogKernelMixDist(data).curves(100)[curve_index][:, 0],
+                   LogKernelMixDist(data).curves(100)[curve_index][:, 1])
+    # pyplot.scatter(LogKernelMixDist(data).curves(1000)[curve_index][:, 0],
+    #                LogKernelMixDist(data).curves(1000)[curve_index][:, 1])
     pyplot.show()

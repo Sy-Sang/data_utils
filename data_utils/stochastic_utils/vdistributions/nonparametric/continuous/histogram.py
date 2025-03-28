@@ -124,12 +124,13 @@ class LogHistogramDistribution(AbstractDistribution):
 
 
 if __name__ == "__main__":
+    from data_utils.stochastic_utils.vdistributions.parameter.continuous.lifetime import WeibullDistribution
     from data_utils.stochastic_utils.vdistributions.parameter.continuous.basic import NormalDistribution
     from matplotlib import pyplot
 
-    data = NormalDistribution(0, 1).rvf(1000)
-    pyplot.scatter(NormalDistribution(0, 1).curves(1000)[2][:, 0],
-                   NormalDistribution(0, 1).curves(1000)[2][:, 1])
-    pyplot.scatter(LogHistogramDistribution(data).curves(1000)[2][:, 0],
-                   LogHistogramDistribution(data).curves(1000)[2][:, 1])
+    data = WeibullDistribution(2, 5).rvf(1000)
+    pyplot.scatter(WeibullDistribution(2, 5).curves(1000)[2][:, 0],
+                   WeibullDistribution(2, 5).curves(1000)[2][:, 1])
+    pyplot.scatter(HistogramDistribution(data).curves(1000)[2][:, 0],
+                   HistogramDistribution(data).curves(1000)[2][:, 1])
     pyplot.show()
