@@ -41,6 +41,7 @@ class ParameterDistribution(AbstractDistribution):
     """参数分布"""
 
     def __init__(self, *args, **kwargs):
+        super().__init__()
         self.args = numpy.asarray(args)
         self.kwargs = copy.deepcopy(kwargs)
 

@@ -32,6 +32,9 @@ eps = np.finfo(float).eps
 class AbstractDistribution(ABC):
     """概率分布(抽象类)"""
 
+    def __init__(self, *args, **kwargs):
+        pass
+
     def clone(self) -> Self:
         """自身的深度复制"""
         return copy.deepcopy(self)

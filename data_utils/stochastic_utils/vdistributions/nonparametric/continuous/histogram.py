@@ -100,6 +100,7 @@ class LogHistogramDistribution(AbstractDistribution):
     """对数直方图分布"""
 
     def __init__(self, data, bin_count: int = None):
+        super().__init__()
         data = numpy.asarray(data)
         self.diff = 1 - numpy.min(data)
         log_data = numpy.log(data + self.diff)

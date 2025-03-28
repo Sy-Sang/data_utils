@@ -62,6 +62,7 @@ class KernelMixDist(AbstractDistribution):
     """混合核分布"""
 
     def __init__(self, data, kernel_num: int = None):
+        super().__init__()
         data = numpy.sort(numpy.asarray(data))
         self.len = data.size
         kernel_num = freedman_diaconis(data) if kernel_num is None else kernel_num
