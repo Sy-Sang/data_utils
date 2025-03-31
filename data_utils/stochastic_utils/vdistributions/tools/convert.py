@@ -54,7 +54,7 @@ def generate_correlated_sample(base_sample, target_distribution: AbstractDistrib
 
 
 def generate_correlated_sample_matrix(base_sample, *args: Tuple[AbstractDistribution, float]) -> numpy.ndarray:
-    """相关性的随机样本"""
+    """相关性的随机样本矩阵"""
     return numpy.stack([
         generate_correlated_sample(base_sample, arg[0], arg[1]) for arg in args
     ], axis=0)
