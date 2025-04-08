@@ -68,9 +68,9 @@ class AbstractDistribution(ABC):
         p = self.ppf([eps, 1 - eps])
         return nt(p[0], p[1])
 
-    def curves(self, num: int = 100):
+    def curves(self, num: int = 100, tail_eps: float = eps):
         """ppf, pdf, cdf曲线"""
-        x = numpy.linspace(eps, 1 - eps, num)
+        x = numpy.linspace(tail_eps, 1 - tail_eps, num)
         ppf_curve = numpy.column_stack((
             x, self.ppf(x)
         ))
@@ -90,7 +90,7 @@ class AbstractDistribution(ABC):
         return self.ppf(seed)
 
     def rvf_scalar(self):
-        """生成一个随机数"""
+        """生成一个随机数标量"""
         return self.rvf(1)[0]
 
 

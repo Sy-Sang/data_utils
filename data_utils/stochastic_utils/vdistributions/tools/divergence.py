@@ -55,6 +55,6 @@ if __name__ == "__main__":
     print(
         kl_divergence_continuous(
             NormalDistribution(0, 1),
-            NormalDistribution(0, 1)
+            NormalDistribution(0, 100)
         )
     )

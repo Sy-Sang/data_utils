@@ -74,6 +74,40 @@ class WeibullDistribution(ParameterDistribution):
         return r
 
 
+class GumbelDistribution(ParameterDistribution):
+    """耿贝尔分布"""
+
+    def __init__(self, alpha=0, beta=1):
+        super().__init__(alpha, beta, **{"alpha": alpha, "beta": beta})
+        self.alpha = alpha
+        self.beta = beta
+
+    def get_param_constraints(self, args) -> list[DistributionParams]:
+        return [
+            DistributionParams("alpha", -numpy.inf, numpy.inf),
+            DistributionParams("beta", 0 + eps, numpy.inf),
+        ]
+
+    def pdf(self, x, *args, **kwargs):
+        x = numpy.asarray(x)
+        z = (x - self.alpha) / self.beta
+        return numpy.exp(z - numpy.exp(z)) / self.beta
+
+    def cdf(self, x, *args, **kwargs):
+        x = numpy.asarray(x)
+        z = (x - self.alpha) / self.beta
+        return 1 - numpy.exp(-numpy.exp(z))
+
+    def ppf(self, x, *args, **kwargs):
+        x = numpy.asarray(x)
+        result = numpy.where(
+            (x > 0) & (x < 1),
+            self.alpha + self.beta * numpy.log(-numpy.log(1 - x)),
+            numpy.nan
+        )
+        return result
+
+
 if __name__ == "__main__":
     w = WeibullDistribution(2, 5)
     print(w.rvf(100))

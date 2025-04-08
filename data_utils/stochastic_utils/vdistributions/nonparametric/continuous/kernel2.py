@@ -15,7 +15,7 @@ __copyright__ = ""
 import copy
 import pickle
 import json
-from typing import Union, Self
+from typing import Union, Self, Type
 from collections import namedtuple
 
 # 项目模块
@@ -33,6 +33,16 @@ import numpy
 
 # 代码块
 
+def find_closest_divisor(n: int, k: int):
+    """最临近整除因子"""
+    divisors = set()
+    for i in range(1, int(n ** 0.5) + 1):
+        if n % i == 0:
+            divisors.add(i)
+            divisors.add(n // i)
+    return min(divisors, key=lambda x: abs(x - k))
+
+
 def silverman_bandwidth(data) -> float:
     """
     Silverman 规则
@@ -47,17 +57,6 @@ def silverman_bandwidth(data) -> float:
     return h
 
 
-class GaussianKernel(NormalDistribution):
-    """
-    高斯核
-    """
-
-    def pdf(self, x, *args, **kwargs):
-        x = numpy.asarray(x)
-        return numpy.exp(-((x - self.mu) ** 2) / (2 * self.sigma ** 2)) / (self.sigma * numpy.sqrt(2 * numpy.pi))
-        # return numpy.exp(-((x - self.mu) ** 2 / (2 * self.sigma ** 2))) / numpy.sqrt(2 * numpy.pi)
-
-
 class KernelMixDistribution(AbstractDistribution):
     """混合核分布"""
 
@@ -65,25 +64,27 @@ class KernelMixDistribution(AbstractDistribution):
         super().__init__()
         data = numpy.sort(numpy.asarray(data))
         self.len = data.size
-        kernel_num = freedman_diaconis(data) if kernel_num is None else kernel_num
+        kernel_len = freedman_diaconis(data) if kernel_num is None else kernel_num
 
-        adjusted_len = ((self.len // kernel_num) + 1) * kernel_num
-        interp = interp1d(numpy.arange(0, self.len, 1), data, fill_value="extrapolate")
-        extrapolate = interp(numpy.arange(self.len, adjusted_len, 1))
-
-        data = numpy.concatenate((data, extrapolate))
-
-        matrix = data.reshape(-1, kernel_num)
-
-        m = numpy.mean(matrix, axis=1)
-
+        if kernel_num is None or kernel_len < self.len:
+            kernel_len = find_closest_divisor(self.len, kernel_len)
+            matrix = data.reshape(-1, kernel_len)
+            m = numpy.mean(matrix, axis=1)
+        else:
+            m = data
         h = silverman_bandwidth(m)
-
         self.kernels = [
-            GaussianKernel(mi, h) for i, mi in enumerate(m)
+            NormalDistribution(mi, h) for i, mi in enumerate(m)
         ]
         self.domain_min = self.kernels[0].domain().min
         self.domain_max = self.kernels[-1].domain().max
+
+        x_grid = numpy.linspace(self.domain_min, self.domain_max, 1000)
+        cdf_vals = self.cdf(x_grid)
+        # for i in range(1, len(cdf_vals)):
+        #     if cdf_vals[i] <= cdf_vals[i - 1]:
+        #         cdf_vals[i] = cdf_vals[i - 1] + eps
+        self.ppf_inter = interp1d(cdf_vals, x_grid, bounds_error=False, fill_value=(x_grid[0], x_grid[-1]))
 
     def __str__(self):
         return str({self.__class__.__name__: self.kernels})
@@ -103,51 +104,18 @@ class KernelMixDistribution(AbstractDistribution):
         r = numpy.sum(m, axis=0) / len(self.kernels)
         return r
 
-    def ppf_guess(self, x):
-        """牛顿法猜测值"""
-        x = numpy.asarray(x)
-        m = numpy.stack([k.ppf(x) for k in self.kernels], axis=0)
-        r = numpy.sum(m, axis=0) / len(self.kernels)
-        return r
-
     def ppf(self, x, *args, **kwargs):
-        x = numpy.atleast_1d(numpy.asarray(x))
-        guess = self.ppf_guess(x)
-        results = numpy.empty_like(x, dtype=float)
-
-        for i, xi in enumerate(x):
-            def _cdf(q):
-                return self.cdf(q) - xi
-
-            results[i], _ = newton_method(_cdf, guess[i])
-
-        return numpy.clip(results if results.shape[0] > 1 else results[0], self.domain_min, self.domain_max)
-
-
-class LogKernelMixDistribution(KernelMixDistribution):
-    def __init__(self, data, kernel_num: int = None):
-        data = numpy.asarray(data)
-        self.diff = 1 - numpy.min(data)
-        super().__init__(numpy.log(data + self.diff), kernel_num)
-
-    def ppf(self, x, *args, **kwargs):
-        """存在问题2025-3-28 12:01:59"""
-        return numpy.e ** super().ppf(x) - self.diff
-
-    def pdf(self, x, *args, **kwargs):
-        x = numpy.asarray(x) + self.diff
-        return super().pdf(numpy.log(x)) / x
-
-    def cdf(self, x, *args, **kwargs):
-        x = numpy.asarray(x) + self.diff
-        return super().cdf(numpy.log(x))
+        x = numpy.atleast_1d(x)
+        result = self.ppf_inter(x)
+        return numpy.clip(result, self.domain_min, self.domain_max)
 
 
 if __name__ == "__main__":
     from data_utils.stochastic_utils.vdistributions.parameter.continuous.lifetime import WeibullDistribution
+    from data_utils.stochastic_utils.vdistributions.parameter.continuous.basic import LogNormalDistribution
     from matplotlib import pyplot
 
-    data = WeibullDistribution(2, 5).rvf(1000)
+    data = WeibullDistribution(2, 5).rvf(5000)
     print(KernelMixDistribution(data))
     # print(LogKernelMixDist(data))
 
