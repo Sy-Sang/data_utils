@@ -65,7 +65,8 @@ def moment_matching_sampler(mu_target, var_target, skew_target, kurt_target, num
         new_loss = moment_loss(x_new, mu_target, var_target, skew_target, kurt_target)
 
         T = 1.0 * (1 - i / max_iter)
-        if new_loss < best_loss or numpy.random.rand() < numpy.exp((best_loss - new_loss) / (T + 1e-6)):
+        # if new_loss < best_loss or numpy.random.rand() < numpy.exp((best_loss - new_loss) / (T + 1e-6)):
+        if new_loss < best_loss:
             x = x_new
             best_loss = new_loss
             best_x = x_new.copy()
@@ -78,4 +79,6 @@ def moment_matching_sampler(mu_target, var_target, skew_target, kurt_target, num
 
 
 if __name__ == "__main__":
-    print(moment_matching_sampler(0, 1, 3, 1))
+    data, loss_trace = moment_matching_sampler(0, 1, 3, 1)
+    print(data.tolist())
+    print(loss_trace)
