@@ -49,12 +49,26 @@ def kl_divergence_continuous(dist_0: AbstractDistribution, dist_1: AbstractDistr
     return result
 
 
+def crps(dist: AbstractDistribution, value):
+    """Continuous Ranked Probability Score"""
+
+    def f(x):
+        return (dist.cdf(x) - numpy.where(x >= value, 1, 0)) ** 2
+
+    domain_min, domain_max = dist.domain()
+    result, _ = quad(
+        f, domain_min, domain_max
+    )
+    return result
+
+
 if __name__ == "__main__":
     from data_utils.stochastic_utils.vdistributions.parameter.continuous.basic import NormalDistribution
 
-    print(
-        kl_divergence_continuous(
-            NormalDistribution(0, 1),
-            NormalDistribution(0, 100)
-        )
-    )
+    # print(
+    #     kl_divergence_continuous(
+    #         NormalDistribution(0, 1),
+    #         NormalDistribution(0, 100)
+    #     )
+    # )
+    print(crps(NormalDistribution(0, 0.1), 0))

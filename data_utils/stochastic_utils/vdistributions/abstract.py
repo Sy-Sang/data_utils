@@ -24,6 +24,7 @@ import numpy
 
 # 外部模块
 import numpy as np
+from scipy.integrate import quad
 
 # 代码块
 eps = np.finfo(float).eps
@@ -92,6 +93,36 @@ class AbstractDistribution(ABC):
     def rvf_scalar(self):
         """生成一个随机数标量"""
         return self.rvf(1)[0]
+
+    def mean_integral(self) -> float:
+        """均值"""
+        a, b = self.domain()
+        return quad(lambda x: x * self.pdf(x), a, b)[0]
+
+    def variance_integral(self) -> float:
+        """方差"""
+        a, b = self.domain()
+        mu = self.mean_integral()
+        return quad(lambda x: (x - mu) ** 2 * self.pdf(x), a, b)[0]
+
+    def skewness_integral(self) -> float:
+        """偏度"""
+        a, b = self.domain()
+        mu = self.mean_integral()
+        sigma = numpy.sqrt(self.variance_integral())
+        return quad(lambda x: ((x - mu) / sigma) ** 3 * self.pdf(x), a, b)[0]
+
+    def kurtosis_integral(self) -> float:
+        """峰度"""
+        a, b = self.domain()
+        mu = self.mean_integral()
+        sigma = numpy.sqrt(self.variance_integral())
+        return quad(lambda x: ((x - mu) / sigma) ** 4 * self.pdf(x), a, b)[0]
+
+    def moment_integral(self) -> numpy.ndarray:
+        """矩"""
+        return numpy.asarray(
+            [self.mean_integral(), self.variance_integral(), self.skewness_integral(), self.kurtosis_integral()])
 
 
 if __name__ == "__main__":
