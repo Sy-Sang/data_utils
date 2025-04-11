@@ -32,7 +32,7 @@ from scipy.interpolate import interp1d
 
 # 代码块
 
-def moment_loss(data, mu_target, var_target, skew_target, kurt_target, method="softmax"):
+def moment_loss(data, mu_target, var_target, skew_target, kurt_target, method="basic"):
     """矩损失函数"""
     if method == "basic":
         loss = ((numpy.mean(data) - mu_target) ** 2 +
@@ -123,8 +123,8 @@ def moment_fitted_kde(mu_target, var_target, skew_target, kurt_target, kernel_nu
 
 
 if __name__ == "__main__":
-    dist = moment_fitted_kde(45, 16, -1, 4, kernel_num=3, method="basic")
+    dist = moment_fitted_kde(45, 16, -5, 4, kernel_num=7, method="minmax")
     print(
-        moment_loss(dist.rvf(1000), 45, 16, -1, 4,  method="basic")
+        moment_loss(dist.rvf(1000), 45, 16, -5, 4, method="basic")
     )
     print(dist.rvf(100).tolist())
