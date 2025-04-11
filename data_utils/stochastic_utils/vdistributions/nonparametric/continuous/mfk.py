@@ -32,12 +32,26 @@ from scipy.interpolate import interp1d
 
 # 代码块
 
-def moment_loss(data, mu_target, var_target, skew_target, kurt_target):
-    loss = ((numpy.mean(data) - mu_target) ** 2 +
-            (numpy.var(data) - var_target) ** 2 +
-            (skew(data) - skew_target) ** 2 +
-            (kurtosis(data) - kurt_target) ** 2)
-    return loss
+def moment_loss(data, mu_target, var_target, skew_target, kurt_target, method="softmax"):
+    """矩损失函数"""
+    if method == "basic":
+        loss = ((numpy.mean(data) - mu_target) ** 2 +
+                (numpy.var(data) - var_target) ** 2 +
+                (skew(data) - skew_target) ** 2 +
+                (kurtosis(data) - kurt_target) ** 2)
+        return loss
+    else:
+        loss_array = numpy.asarray([
+            (numpy.mean(data) - mu_target) ** 2,
+            (numpy.var(data) - var_target) ** 2,
+            (skew(data) - skew_target) ** 2,
+            (kurtosis(data) - kurt_target) ** 2
+        ])
+        if method == "minmax":
+            loss_array = (loss_array - numpy.min(loss_array)) / (numpy.max(loss_array) - numpy.min(loss_array))
+        else:
+            loss_array = numpy.exp(loss_array) / numpy.sum(numpy.exp(loss_array))
+        return numpy.sum(loss_array)
 
 
 class KernelDistribution(AbstractDistribution):
@@ -79,6 +93,7 @@ class KernelDistribution(AbstractDistribution):
 
 
 def auto_bounds(mu_target, var_target, kurt_target):
+    """自动化搜索边界"""
     norm = NormalDistribution(mu_target, var_target ** 0.5)
     mu_domain_min, mu_domain_max = norm.ppf([eps, 1 - eps])
     var_domain_min = var_target / 100
@@ -86,12 +101,14 @@ def auto_bounds(mu_target, var_target, kurt_target):
     return mu_domain_min, mu_domain_max, var_domain_min, var_domain_max
 
 
-def moment_fitted_kde(mu_target, var_target, skew_target, kurt_target, kernel_num=5):
+def moment_fitted_kde(mu_target, var_target, skew_target, kurt_target, kernel_num=5, method="softmax"):
+    """矩拟合KDE分布"""
+
     def f(x):
         args = numpy.asarray(x).reshape(kernel_num, 2)
         kd = KernelDistribution(*args)
         data = kd.ppf(numpy.linspace(0.01, 0.99, 100))
-        return moment_loss(data, mu_target, var_target, skew_target, kurt_target)
+        return moment_loss(data, mu_target, var_target, skew_target, kurt_target, method)
 
     mu_domain_min, mu_domain_max, var_domain_min, var_domain_max = auto_bounds(mu_target, var_target, kurt_target)
 
@@ -106,8 +123,8 @@ def moment_fitted_kde(mu_target, var_target, skew_target, kurt_target, kernel_nu
 
 
 if __name__ == "__main__":
-    dist = moment_fitted_kde(1, 3, -2, 4, kernel_num=4)
+    dist = moment_fitted_kde(45, 16, -1, 4, kernel_num=3, method="basic")
     print(
-        moment_loss(dist.rvf(1000), 1, 3, -2, 4)
+        moment_loss(dist.rvf(1000), 45, 16, -1, 4,  method="basic")
     )
     print(dist.rvf(100).tolist())
