@@ -49,24 +49,26 @@ def moment_constrained_sampler(mu_target, var_target, skew_target, kurt_target, 
     return KernelMixDistribution(result.x)
 
 
-def moment_matching_sampler(mu_target, var_target, skew_target, kurt_target, num=100, max_iter=1000, perturb_scale=0.2):
+def moment_matching_sampler(mu_target, var_target, skew_target, kurt_target, num=100, max_iter=2000,
+                            perturb_scale=0.2):
     x = NormalDistribution(mu_target, var_target ** 0.5).rvf(num)
     best_x = x.copy()
     best_loss = moment_loss(x, mu_target, var_target, skew_target, kurt_target)
     loss_trace = [best_loss]
-    replace_size = int(num * 0.05)
+    replace_size = int(num * 0.1)
     replace_dist = moment_constrained_sampler(mu_target, var_target, skew_target, kurt_target, num)
     for i in range(max_iter):
         x_new = x.copy()
         idx = numpy.random.choice(num, size=replace_size, replace=False)
         # x_new[idx] += numpy.random.normal(0, perturb_scale, size=replace_size)
-        x_new[idx] = replace_dist.rvf(replace_size)
+        rep_sample = replace_dist.rvf(replace_size)
+        x_new[idx] += (rep_sample - numpy.mean(rep_sample)) * 0.1
 
         new_loss = moment_loss(x_new, mu_target, var_target, skew_target, kurt_target)
 
-        T = 1.0 * (1 - i / max_iter)
+        # T = 1.0 * (1 - i / max_iter)
         # if new_loss < best_loss or numpy.random.rand() < numpy.exp((best_loss - new_loss) / (T + 1e-6)):
-        if new_loss < best_loss:
+        if new_loss <= best_loss:
             x = x_new
             best_loss = new_loss
             best_x = x_new.copy()
