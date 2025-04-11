@@ -78,6 +78,14 @@ class KernelDistribution(AbstractDistribution):
         return numpy.clip(result, self.domain_min, self.domain_max)
 
 
+def auto_bounds(mu_target, var_target, kurt_target):
+    norm = NormalDistribution(mu_target, var_target ** 0.5)
+    mu_domain_min, mu_domain_max = norm.ppf([eps, 1 - eps])
+    var_domain_min = var_target / 100
+    var_domain_max = var_target * (1 + numpy.clip((kurt_target - 3), 0, 5))
+    return mu_domain_min, mu_domain_max, var_domain_min, var_domain_max
+
+
 def moment_fitted_kde(mu_target, var_target, skew_target, kurt_target, kernel_num=5):
     def f(x):
         args = numpy.asarray(x).reshape(kernel_num, 2)
@@ -85,10 +93,7 @@ def moment_fitted_kde(mu_target, var_target, skew_target, kurt_target, kernel_nu
         data = kd.ppf(numpy.linspace(0.01, 0.99, 100))
         return moment_loss(data, mu_target, var_target, skew_target, kurt_target)
 
-    mu_domain_min = mu_target - 10 * var_target
-    mu_domain_max = mu_target + 10 * var_target
-    var_domain_min = var_target * 0.1
-    var_domain_max = 10 * var_target
+    mu_domain_min, mu_domain_max, var_domain_min, var_domain_max = auto_bounds(mu_target, var_target, kurt_target)
 
     result = minimize(
         f,
@@ -101,8 +106,8 @@ def moment_fitted_kde(mu_target, var_target, skew_target, kurt_target, kernel_nu
 
 
 if __name__ == "__main__":
-    dist = moment_fitted_kde(1, 3, -3, 0, kernel_num=4)
+    dist = moment_fitted_kde(1, 3, -2, 4, kernel_num=4)
     print(
-        moment_loss(dist.rvf(1000), 1, 3, -3, 0)
+        moment_loss(dist.rvf(1000), 1, 3, -2, 4)
     )
     print(dist.rvf(100).tolist())
