@@ -32,26 +32,33 @@ from scipy.interpolate import interp1d
 
 # 代码块
 
+def data_moment(data):
+    """数据的矩"""
+    data = numpy.asarray(data)
+    return numpy.asarray([numpy.mean(data), numpy.var(data), skew(data), kurtosis(data)])
+
+
 def moment_loss(data, mu_target, var_target, skew_target, kurt_target, method="basic"):
     """矩损失函数"""
+    moment = data_moment(data)
+    target = numpy.asarray([mu_target, var_target, skew_target, kurt_target])
     if method == "basic":
-        loss = ((numpy.mean(data) - mu_target) ** 2 +
-                (numpy.var(data) - var_target) ** 2 +
-                (skew(data) - skew_target) ** 2 +
-                (kurtosis(data) - kurt_target) ** 2)
+        loss = numpy.sum((moment - target) ** 2)
         return loss
+    elif method == "minmax":
+        mm = numpy.concatenate((moment, target))
+        mm = ((mm - numpy.min(mm)) / (numpy.max(mm) + 1e-8 - numpy.min(mm))).reshape(2, 4)
+        return numpy.sum(
+            (mm[0] - mm[1]) ** 2
+        )
+    elif method == "softmax":
+        mm = numpy.concatenate((moment, target))
+        mm = (numpy.exp(mm) / numpy.sum(numpy.exp(mm))).reshape(2, 4)
+        return numpy.sum(
+            (mm[0] - mm[1]) ** 2
+        )
     else:
-        loss_array = numpy.asarray([
-            (numpy.mean(data) - mu_target) ** 2,
-            (numpy.var(data) - var_target) ** 2,
-            (skew(data) - skew_target) ** 2,
-            (kurtosis(data) - kurt_target) ** 2
-        ])
-        if method == "minmax":
-            loss_array = (loss_array - numpy.min(loss_array)) / (numpy.max(loss_array) - numpy.min(loss_array))
-        else:
-            loss_array = numpy.exp(loss_array) / numpy.sum(numpy.exp(loss_array))
-        return numpy.sum(loss_array)
+        raise Exception(f"method {method} was not found")
 
 
 class KernelDistribution(AbstractDistribution):
@@ -101,7 +108,7 @@ def auto_bounds(mu_target, var_target, kurt_target):
     return mu_domain_min, mu_domain_max, var_domain_min, var_domain_max
 
 
-def moment_fitted_kde(mu_target, var_target, skew_target, kurt_target, kernel_num=5, method="softmax"):
+def moment_fitted_kde(mu_target, var_target, skew_target, kurt_target, kernel_num=5, method="basic"):
     """矩拟合KDE分布"""
 
     def f(x):
@@ -123,8 +130,8 @@ def moment_fitted_kde(mu_target, var_target, skew_target, kurt_target, kernel_nu
 
 
 if __name__ == "__main__":
-    dist = moment_fitted_kde(45, 16, -5, 4, kernel_num=7, method="minmax")
+    dist = moment_fitted_kde(45, 1 ** 2, -1, 1, kernel_num=8, method="basic")
     print(
-        moment_loss(dist.rvf(1000), 45, 16, -5, 4, method="basic")
+        data_moment(dist.rvf(1000))
     )
     print(dist.rvf(100).tolist())
