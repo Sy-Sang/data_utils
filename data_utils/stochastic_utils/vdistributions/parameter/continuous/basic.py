@@ -24,7 +24,8 @@ from data_utils.stochastic_utils.vdistributions.parameter.abstract import Parame
 
 # 外部模块
 import numpy
-from scipy.special import betaincinv, beta, iv, gamma, erfinv, erfcinv, betainc, erfc, erf
+from scipy.special import betaincinv, beta, iv, gamma, erfinv, erfcinv, betainc, erfc, erf, owens_t
+from scipy.optimize import brentq
 
 
 # 代码块
@@ -127,7 +128,53 @@ class ExponentialDistribution(ParameterDistribution):
         return r
 
 
+class SkewNormalDistribution(ParameterDistribution):
+    """偏态正态分布"""
+
+    def __init__(self, mu, sigma, alpha):
+        super().__init__(mu, sigma, alpha, **{"mu": mu, "sigma": sigma, "alpha": alpha})
+        self.mu = mu
+        self.sigma = sigma
+        self.alpha = alpha
+
+    def get_param_constraints(self, args) -> list[DistributionParams]:
+        return [
+            DistributionParams("mu", -numpy.inf, numpy.inf),
+            DistributionParams("sigma", 0 + eps, numpy.inf),
+            DistributionParams("alpha", -numpy.inf, numpy.inf)
+        ]
+
+    def pdf(self, x, *args, **kwargs):
+        x = numpy.asarray(x)
+        z = (x - self.mu) / self.sigma
+        return (numpy.exp(-0.5 * z ** 2) * erfc(-self.alpha * z / numpy.sqrt(2))) / (
+                numpy.sqrt(2 * numpy.pi) * self.sigma)
+
+    def cdf(self, x, *args, **kwargs):
+        x = numpy.asarray(x)
+        z = (x - self.mu) / self.sigma
+        term1 = 0.5 * erfc(-z / numpy.sqrt(2))
+        term2 = 2 * owens_t(z, self.alpha)
+        return term1 - term2
+
+    def single_ppf(self, qi):
+        """单点ppf"""
+        if qi >= 1 or qi <= 0:
+            return numpy.nan
+        else:
+            return brentq(lambda y: self.cdf(y) - qi,
+                          self.mu - 10 * self.sigma,
+                          self.mu + 10 * self.sigma)
+
+    def ppf(self, x, *args, **kwargs):
+        is_scalar = numpy.isscalar(x)
+        x = numpy.atleast_1d(x)
+        result = numpy.array([self.single_ppf(qi) for qi in x])
+        return result[0] if is_scalar else result
+
+
 if __name__ == "__main__":
-    n = LogNormalDistribution()
-    print(n.cdf([1, 2, 3, 4, 5]))
-    print(n.rvf(100))
+    n = SkewNormalDistribution(0, 1, 1)
+    # print(n.cdf([1, 2, 3, 4, 5]))
+    # print(n.rvf(100))
+    print(n.domain())
