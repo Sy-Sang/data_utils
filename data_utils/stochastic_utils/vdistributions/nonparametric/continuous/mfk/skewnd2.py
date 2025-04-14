@@ -166,7 +166,14 @@ class SkewWeightKDFitter:
         return SkewWeightKernelDistribution(y), numpy.asarray(y).reshape(-1, 4)
 
 
-class SkewWeightKDFitter2(SkewWeightKDFitter):
+class SkewWeightKDFitter2:
+
+    def __init__(self, x0, mu_target, var_target, skew_target, kurt_target, kernel_num):
+        self.x0 = numpy.asarray(x0)
+        self.target = numpy.asarray([
+            mu_target, var_target, skew_target, kurt_target
+        ])
+        self.kernel_num = kernel_num
 
     def zoom(self, xz):
         return self.x0 * xz
@@ -177,55 +184,46 @@ class SkewWeightKDFitter2(SkewWeightKDFitter):
         y = numpy.column_stack((x, xw))
         return y.reshape(len(x) * 4)
 
-    def zoom_and_adj_loss(self, xzw, kernel_num):
-        xz = xzw[:kernel_num * 3]
-        xw = xzw[kernel_num * 3:]
+    def zoom_and_adj_loss(self, xzw):
+        xz = xzw[:self.kernel_num * 3]
+        xw = xzw[self.kernel_num * 3:]
         y = self.zoom_and_adj(xz, xw)
         # return y.reshape(len(x) * 4)
         d = SkewWeightKernelDistribution(y)
         m = d.moment()
         return numpy.sum((m - self.target) ** 2)
 
-    def fit(self, kernel_num):
+    def fit(self, de_maxiter=50):
         result = differential_evolution(
             self.zoom_and_adj_loss,
-            bounds=[(0.1, 2)] * (kernel_num * 3) + [(0.1, 1)] * kernel_num,
-            args=(kernel_num,)
+            bounds=[(0.1, 1.9)] * (self.kernel_num * 3) + [(0.1, 1)] * self.kernel_num,
+            maxiter=de_maxiter
         )
-        y = self.zoom_and_adj(result.x, kernel_num)
+        y = self.zoom_and_adj(result.x[:self.kernel_num * 3], result.x[self.kernel_num * 3:])
         return SkewWeightKernelDistribution(y), numpy.asarray(y).reshape(-1, 4)
+
+def snd_fitter(mu_target, var_target, skew_target, kurt_target, kernel_num, de_maxiter=20):
+    finder = SkewKDFitter(mu_target, var_target, skew_target, kurt_target)
+    d, p = finder.fit(kernel_num)
+    finder2 = SkewWeightKDFitter2(p, mu_target, var_target, skew_target, kurt_target, kernel_num)
+    d2, p2 = finder2.fit(de_maxiter)
+    return d, d2, p2
 
 
 if __name__ == "__main__":
-    finder = SkewKDFitter(45, 2 ** 2, -3, 1)
-    # print(finder.adj([0, 1, 2, 3, 4, 5], [-1, -2]))
-    d, p = finder.fit(2)
-    print(p)
-    # finder2 = SkewWeightKDFitter2(p, 45, 2 ** 2, -3, 1)
-    # d2, p2 = finder2.fit(2)
+    d, d2, p2 = snd_fitter(40, 2 ** 2, -3, 5, 2)
+    print(d.moment())
+    print(d2.moment())
+    print(p2)
+    print(d2.rvf(200).tolist())
+
+
+    # finder = SkewKDFitter(40, 2 ** 2, -3, 5)
+    # # print(finder.adj([0, 1, 2, 3, 4, 5], [-1, -2]))
+    # d, p = finder.fit(2)
+    # print(d.moment())
+    # finder2 = SkewWeightKDFitter2(p, 40, 2 ** 2, -3, 5, 2)
+    # d2, p2 = finder2.fit(20)
     # print(finder2.target)
     # print(d2.moment())
     # print(p2)
-    # print(finder.loss(p))
-    # print(finder2.zoom_and_adj_loss(p2.reshape(2, -1)[:, 3]))
-
-    # snd = SkewNormalKernel(45, 5, 500)
-    # print(snd.mean())
-
-    # finder = SkewKDFitter(45, 2 ** 2, -3, 1)
-    # print(finder.target)
-    # # d = SkewKernelDistribution([0, 1, 0])
-    # d, r = finder.fit(4)
-    # print(d.moment())
-    # print(d)
-    # print(d.kernels[0].mean())
-    # #
-    # # d = SkewKernelDistribution([45, 1, 0] * 4 )
-    # # # print(d.domain_min)
-    # # # print(d.domain_max)
-    # # print(d.moment())
-    # # print(d.rvf(200).tolist())
-    #
-    # print(numpy.sum((d.moment() - finder.target) ** 2))
-    # # print(d.rvf(200).tolist())
-    # print(r)
