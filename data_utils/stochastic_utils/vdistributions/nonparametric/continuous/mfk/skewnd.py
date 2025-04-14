@@ -165,17 +165,17 @@ class SkewKDFitter:
                     (-numpy.inf, numpy.inf)] * kernel_num,
             # method='BFGS'
         )
-        return SkewKernelDistribution(result.x)
+        return SkewKernelDistribution(result.x), result.x
 
 
 if __name__ == "__main__":
     # snd = SkewNormalKernel(45, 5, 500)
     # print(snd.mean())
 
-    finder = SkewKDFitter(45, 2 ** 2, 2, 1)
+    finder = SkewKDFitter(45, 2 ** 2, -3, 1)
     print(finder.target)
     # d = SkewKernelDistribution([0, 1, 0])
-    d = finder.fit(4)
+    d, p = finder.fit(4)
     print(d.moment())
     print(d)
     print(d.kernels[0].mean())
@@ -188,3 +188,4 @@ if __name__ == "__main__":
 
     print(numpy.sum((d.moment() - finder.target) ** 2))
     print(d.rvf(200).tolist())
+    print(p)
