@@ -23,7 +23,8 @@ from data_utils.stochastic_utils.vdistributions.abstract import AbstractDistribu
 from data_utils.stochastic_utils.vdistributions.parameter.continuous.basic import SkewNormalDistribution
 from data_utils.stochastic_utils.vdistributions.nonparametric.continuous.mfk.nd import data_moment, moment_loss
 
-from data_utils.stochastic_utils.vdistributions.nonparametric.continuous.mfk.skewnd import SkewKDFitter
+from data_utils.stochastic_utils.vdistributions.nonparametric.continuous.mfk.skewnd import SkewKDFitter, \
+    SkewNormalKernel
 
 # 外部模块
 import numpy
@@ -34,26 +35,26 @@ from scipy.interpolate import interp1d
 
 # 代码块
 
-class SkewNormalKernel(SkewNormalDistribution):
-
-    def mean(self):
-        return (numpy.sqrt(2 / numpy.pi) * self.alpha * self.sigma) / numpy.sqrt(self.alpha ** 2 + 1) + self.mu
-
-    def variance(self):
-        return (1 - (2 * self.alpha ** 2) / (numpy.pi * (self.alpha ** 2 + 1))) * self.sigma ** 2
-
-    def skewness(self):
-        numerator = numpy.sqrt(2) * (4 - numpy.pi) * self.alpha ** 3
-        denominator = ((numpy.pi - 2) * self.alpha ** 2 + numpy.pi) ** 1.5
-        return numerator / denominator
-
-    def kurtosis(self):
-        numerator = 8 * (numpy.pi - 3) * self.alpha ** 4
-        denominator = ((numpy.pi - 2) * self.alpha ** 2 + numpy.pi) ** 2
-        return numerator / denominator + 3
-
-    def moment(self):
-        return numpy.asarray([self.mean(), self.variance(), self.skewness(), self.kurtosis()])
+# class SkewNormalKernel(SkewNormalDistribution):
+#
+#     def mean(self):
+#         return (numpy.sqrt(2 / numpy.pi) * self.alpha * self.sigma) / numpy.sqrt(self.alpha ** 2 + 1) + self.mu
+#
+#     def variance(self):
+#         return (1 - (2 * self.alpha ** 2) / (numpy.pi * (self.alpha ** 2 + 1))) * self.sigma ** 2
+#
+#     def skewness(self):
+#         numerator = numpy.sqrt(2) * (4 - numpy.pi) * self.alpha ** 3
+#         denominator = ((numpy.pi - 2) * self.alpha ** 2 + numpy.pi) ** 1.5
+#         return numerator / denominator
+#
+#     def kurtosis(self):
+#         numerator = 8 * (numpy.pi - 3) * self.alpha ** 4
+#         denominator = ((numpy.pi - 2) * self.alpha ** 2 + numpy.pi) ** 2
+#         return numerator / denominator + 3
+#
+#     def moment(self):
+#         return numpy.asarray([self.mean(), self.variance(), self.skewness(), self.kurtosis()])
 
 
 class SkewWeightKernelDistribution(AbstractDistribution):
@@ -122,7 +123,7 @@ class SkewWeightKernelDistribution(AbstractDistribution):
             ) * self.w[i] for i, k in enumerate(self.kernels)]) / self.ws
         return mu_3 / std_hat ** 3
 
-    def moment(self):
+    def moment(self) -> numpy.ndarray:
         # w = 1 / self.kernel_len
         mu_hat = self.mean()
         var_hat = self.variance()
@@ -193,6 +194,15 @@ class SkewWeightKDFitter2:
         m = d.moment()
         return numpy.sum((m - self.target) ** 2)
 
+    def dof_zoom_and_adj_loss(self, xzw, dof_index):
+        xz = xzw[:self.kernel_num * 3]
+        xw = xzw[self.kernel_num * 3:]
+        y = self.zoom_and_adj(xz, xw)
+        d = SkewWeightKernelDistribution(y)
+        m = d.moment()[dof_index]
+        target = self.target[dof_index]
+        return numpy.sum((m - target) ** 2)
+
     def fit(self, de_maxiter=50):
         result = differential_evolution(
             self.zoom_and_adj_loss,
@@ -202,7 +212,20 @@ class SkewWeightKDFitter2:
         y = self.zoom_and_adj(result.x[:self.kernel_num * 3], result.x[self.kernel_num * 3:])
         return SkewWeightKernelDistribution(y), numpy.asarray(y).reshape(-1, 4)
 
+    def dof_fit(self, dof_index):
+        result = minimize(
+            self.dof_zoom_and_adj_loss,
+            numpy.random.uniform(0.1, 1, self.kernel_num * 4),
+            bounds=[(0.1, numpy.inf)] * (self.kernel_num * 3) + [(0.1, 1)] * self.kernel_num,
+            # maxiter=de_maxiter,
+            args=(dof_index,)
+        )
+        y = self.zoom_and_adj(result.x[:self.kernel_num * 3], result.x[self.kernel_num * 3:])
+        return SkewWeightKernelDistribution(y), numpy.asarray(y)
+
+
 def snd_fitter(mu_target, var_target, skew_target, kurt_target, kernel_num, de_maxiter=20):
+    """snd拟合"""
     finder = SkewKDFitter(mu_target, var_target, skew_target, kurt_target)
     d, p = finder.fit(kernel_num)
     finder2 = SkewWeightKDFitter2(p, mu_target, var_target, skew_target, kurt_target, kernel_num)
@@ -210,13 +233,27 @@ def snd_fitter(mu_target, var_target, skew_target, kurt_target, kernel_num, de_m
     return d, d2, p2
 
 
-if __name__ == "__main__":
-    d, d2, p2 = snd_fitter(40, 2 ** 2, -3, 5, 2)
-    print(d.moment())
-    print(d2.moment())
-    print(p2)
-    print(d2.rvf(200).tolist())
+def dof_snd_fitter(mu_target, var_target, skew_target, kurt_target, kernel_num, de_maxiter=20):
+    """带有自由度的snd拟合"""
+    default_moment = numpy.asarray([0, 1, 0, 3])
+    input_target = numpy.asarray([mu_target, var_target, skew_target, kurt_target])
+    target = numpy.where(input_target != None, input_target, default_moment)
+    dof_index = numpy.where(input_target != None)
 
+    finder = SkewKDFitter(*target)
+    d, p = finder.fit(kernel_num)
+
+    finder2 = SkewWeightKDFitter2(p, mu_target, var_target, skew_target, kurt_target, kernel_num)
+    d2, p2 = finder2.dof_fit(dof_index)
+    return d, d2, p2
+
+
+if __name__ == "__main__":
+    # d, d2, p2 = snd_fitter(40, 2 ** 2, -3, 1, 2)
+    # print(d.moment())
+    # print(d2.moment())
+    # print(p2)
+    # print(d2.rvf(200).tolist())
 
     # finder = SkewKDFitter(40, 2 ** 2, -3, 5)
     # # print(finder.adj([0, 1, 2, 3, 4, 5], [-1, -2]))
@@ -227,3 +264,8 @@ if __name__ == "__main__":
     # print(finder2.target)
     # print(d2.moment())
     # print(p2)
+
+    d, d2, p2 = dof_snd_fitter(45, 0.1, -0.5, None, 4)
+    print(d.moment())
+    print(d2.moment())
+    print(d2.rvf(100).tolist())
