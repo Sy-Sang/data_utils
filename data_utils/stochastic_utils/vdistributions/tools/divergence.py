@@ -34,16 +34,15 @@ def kl_divergence_continuous(dist_0: AbstractDistribution, dist_1: AbstractDistr
     def integrand(x):
         px = dist_0.pdf(x)
         qx = dist_1.pdf(x)
-        if px == 0 or qx == 0:
+        if px <= 1e-12 or qx <= 1e-12:
             return 0.0
         return px * numpy.log(px / qx)
 
-    domain_matrix = numpy.stack([
-        numpy.asarray(dist_0.domain()),
-        numpy.asarray(dist_1.domain())
-    ], axis=1)
-    domain_min = numpy.max(domain_matrix[0])
-    domain_max = numpy.min(domain_matrix[1])
+    domain_0 = dist_0.domain()
+    domain_1 = dist_1.domain()
+
+    domain_min = numpy.max([domain_0.min, domain_1.min])
+    domain_max = numpy.min([domain_0.max, domain_1.max])
 
     result, _ = quad(integrand, domain_min, domain_max)
     return result
@@ -56,9 +55,7 @@ def crps(dist: AbstractDistribution, value):
         return (dist.cdf(x) - numpy.where(x >= value, 1, 0)) ** 2
 
     domain_min, domain_max = dist.domain()
-    result, _ = quad(
-        f, domain_min, domain_max
-    )
+    result, _ = quad(f, domain_min, domain_max)
     return result
 
 
