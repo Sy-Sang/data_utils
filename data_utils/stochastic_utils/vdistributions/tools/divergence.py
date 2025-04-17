@@ -41,8 +41,8 @@ def kl_divergence_continuous(dist_0: AbstractDistribution, dist_1: AbstractDistr
     domain_0 = dist_0.domain()
     domain_1 = dist_1.domain()
 
-    domain_min = numpy.max([domain_0.min, domain_1.min])
-    domain_max = numpy.min([domain_0.max, domain_1.max])
+    domain_min = numpy.min([domain_0.min, domain_1.min])
+    domain_max = numpy.max([domain_0.max, domain_1.max])
 
     result, _ = quad(integrand, domain_min, domain_max)
     return result
@@ -57,6 +57,13 @@ def crps(dist: AbstractDistribution, value):
     domain_min, domain_max = dist.domain()
     result, _ = quad(f, domain_min, domain_max)
     return result
+
+
+def quantile_RMSE(dist_0: AbstractDistribution, dist_1: AbstractDistribution):
+    q = numpy.arange(0.01, 0.99, 0.01)
+    q0 = dist_0.ppf(q)
+    q1 = dist_1.ppf(q)
+    return numpy.sqrt(numpy.sum((q0 - q1) ** 2))
 
 
 if __name__ == "__main__":
