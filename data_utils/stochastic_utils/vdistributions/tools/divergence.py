@@ -41,8 +41,8 @@ def kl_divergence_continuous(dist_0: AbstractDistribution, dist_1: AbstractDistr
     domain_0 = dist_0.domain()
     domain_1 = dist_1.domain()
 
-    domain_min = numpy.min([domain_0.min, domain_1.min])
-    domain_max = numpy.max([domain_0.max, domain_1.max])
+    domain_min = numpy.max([domain_0.min, domain_1.min])
+    domain_max = numpy.min([domain_0.max, domain_1.max])
 
     result, _ = quad(integrand, domain_min, domain_max)
     return result
