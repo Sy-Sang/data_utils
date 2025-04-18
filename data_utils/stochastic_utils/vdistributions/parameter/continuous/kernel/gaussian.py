@@ -1,0 +1,78 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""指定参数的核分布"""
+
+__author__ = "Sy,Sang"
+__version__ = ""
+__license__ = "GPLv3"
+__maintainer__ = "Sy, Sang"
+__email__ = "martin9le@163.com"
+__status__ = "Development"
+__credits__ = []
+__date__ = ""
+__copyright__ = ""
+
+# 系统模块
+import copy
+import pickle
+import json
+from typing import Union, Self
+from collections import namedtuple
+
+# 项目模块
+from data_utils.stochastic_utils.vdistributions.abstract import AbstractDistribution, eps
+from data_utils.stochastic_utils.vdistributions.parameter.continuous.basic import NormalDistribution
+from data_utils.stochastic_utils.vdistributions.parameter.abstract import ParameterDistribution
+
+# 外部模块
+import numpy
+from scipy.stats import t, iqr
+from scipy.interpolate import interp1d
+import numpy
+
+
+# 代码块
+
+class GaussianKernelMixDistribution(AbstractDistribution):
+
+    def __init__(self, *args):
+        super().__init__()
+        self.args = args
+        self.kernels = [
+            NormalDistribution(i[0], i[1]) for i in args
+        ]
+
+        self.domain_min = self.kernels[0].domain().min
+        self.domain_max = self.kernels[-1].domain().max
+
+        x_grid = numpy.linspace(self.domain_min, self.domain_max, 1000)
+        cdf_vals = self.cdf(x_grid)
+        self.ppf_inter = interp1d(cdf_vals, x_grid, bounds_error=False, fill_value=(x_grid[0], x_grid[-1]))
+
+    def __str__(self):
+        return str({self.__class__.__name__: self.kernels})
+
+    def __repr__(self):
+        return str({self.__class__.__name__: self.kernels})
+
+    def pdf(self, x, *args, **kwargs):
+        x = numpy.asarray(x)
+        m = numpy.stack([k.pdf(x) for k in self.kernels], axis=0)
+        r = numpy.sum(m, axis=0) / len(self.kernels)
+        return r
+
+    def cdf(self, x, *args, **kwargs):
+        x = numpy.asarray(x)
+        m = numpy.stack([k.cdf(x) for k in self.kernels], axis=0)
+        r = numpy.sum(m, axis=0) / len(self.kernels)
+        return r
+
+    def ppf(self, x, *args, **kwargs):
+        x = numpy.atleast_1d(x)
+        result = self.ppf_inter(x)
+        return numpy.clip(result, self.domain_min, self.domain_max)
+
+
+if __name__ == "__main__":
+    pass

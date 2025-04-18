@@ -38,8 +38,8 @@ class ClippedHistogramDistribution(HistogramDistribution):
 
     def __init__(self, dist: AbstractDistribution, x_min, x_max, his_num=1000, bin_num: int = None):
         self.dist = dist.clone()
-        self.min = x_min
-        self.max = x_max
+        self.min = x_min if x_min > -numpy.inf else self.dist.domain().min
+        self.max = x_max if x_max < numpy.inf else self.dist.domain().max
         data = numpy.clip(self.dist.rvf(his_num), self.min, self.max)
         super().__init__(data, bin_num)
 
