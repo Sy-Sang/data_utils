@@ -37,20 +37,24 @@ DomainNamedtuple = namedtuple("DomainNamedtuple", ["min", "max"])
 class ClippedHistogramDistribution(HistogramDistribution):
 
     def __init__(self, dist: AbstractDistribution, x_min, x_max, his_num=1000, bin_num: int = None):
-        self.dist = dist.clone()
-        self.min = x_min if x_min > -numpy.inf else self.dist.domain().min
-        self.max = x_max if x_max < numpy.inf else self.dist.domain().max
-        data = numpy.clip(self.dist.rvf(his_num), self.min, self.max)
+        self.distribution = dist.clone()
+        self.min = x_min if x_min > -numpy.inf else self.distribution.domain().min
+        self.max = x_max if x_max < numpy.inf else self.distribution.domain().max
+        data = numpy.clip(self.distribution.rvf(his_num), self.min, self.max)
         super().__init__(data, bin_num)
 
     def __repr__(self):
-        return str({"distribution": self.dist, "min": self.min, "max": self.max})
+        return str({"distribution": self.distribution, "min": self.min, "max": self.max})
 
     def __str__(self):
-        return str({"distribution": self.dist, "min": self.min, "max": self.max})
+        return str({"distribution": self.distribution, "min": self.min, "max": self.max})
 
     def domain(self):
-        return DomainNamedtuple(self.min, self.max)
+        dist_min, dist_max = self.distribution.domain()
+        return DomainNamedtuple(
+            numpy.max([self.min, dist_min]),
+            numpy.min([self.max, dist_max])
+        )
 
 
 class ClampedDistribution(AbstractDistribution):
@@ -67,7 +71,12 @@ class ClampedDistribution(AbstractDistribution):
         return str({"distribution": self.distribution, "min": self.min, "max": self.max})
 
     def domain(self):
-        return DomainNamedtuple(self.min, self.max)
+        # return DomainNamedtuple(self.min, self.max)
+        dist_min, dist_max = self.distribution.domain()
+        return DomainNamedtuple(
+            numpy.max([self.min, dist_min]),
+            numpy.min([self.max, dist_max])
+        )
 
     def cdf(self, x, *args, **kwargs):
         x = numpy.asarray(x)
