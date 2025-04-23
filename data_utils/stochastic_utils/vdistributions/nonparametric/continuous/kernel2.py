@@ -53,6 +53,8 @@ def silverman_bandwidth(data) -> float:
     ir = iqr(data)
 
     h = 0.9 * numpy.min([std_dev, ir / 1.34]) * n ** (-0.2)
+    if h == 0:
+        raise Exception(f"h=0, data:{data.tolist()}")
 
     return h
 
@@ -91,6 +93,13 @@ class KernelMixDistribution(AbstractDistribution):
 
     def __repr__(self):
         return str({self.__class__.__name__: self.kernels})
+
+    def kernel_data(self, sort_index=0):
+        d = []
+        for k in self.kernels:
+            d.append([k.mu, k.sigma])
+        d = numpy.asarray(d)
+        return d[numpy.argsort(d[:, sort_index])]
 
     def pdf(self, x, *args, **kwargs):
         x = numpy.asarray(x)

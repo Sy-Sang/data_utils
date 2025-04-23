@@ -56,6 +56,13 @@ class GaussianKernelMixDistribution(AbstractDistribution):
     def __repr__(self):
         return str({self.__class__.__name__: self.kernels})
 
+    def kernel_data(self, sort_index=0):
+        d = []
+        for k in self.kernels:
+            d.append([k.mu, k.sigma])
+        d = numpy.asarray(d)
+        return d[numpy.argsort(d[:, sort_index])]
+
     def pdf(self, x, *args, **kwargs):
         x = numpy.asarray(x)
         m = numpy.stack([k.pdf(x) for k in self.kernels], axis=0)
@@ -75,4 +82,5 @@ class GaussianKernelMixDistribution(AbstractDistribution):
 
 
 if __name__ == "__main__":
-    pass
+    gkmd = GaussianKernelMixDistribution((0, 0.1))
+    print(gkmd.rvf(100))
