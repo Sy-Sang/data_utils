@@ -65,6 +65,7 @@ def quantile_RMSE(dist_0: AbstractDistribution, dist_1: AbstractDistribution):
     q1 = dist_1.ppf(q)
     return numpy.sqrt(numpy.sum((q0 - q1) ** 2))
 
+
 def js_divergence_continuous(dist_0, dist_1):
     def m_pdf(x):
         return 0.5 * (dist_0.pdf(x) + dist_1.pdf(x))
@@ -72,15 +73,20 @@ def js_divergence_continuous(dist_0, dist_1):
     def integrand(x, pdf_a):
         p = pdf_a(x)
         m = m_pdf(x)
-        if p <= 1e-12 or m <= 1e-12:
-            return 0.0
-        return p * numpy.log(p / m)
+        mask = (p > 1e-12) & (m > 1e-12)
+        out = numpy.zeros_like(p)
+        out[mask] = p[mask] * numpy.log(p[mask] / m[mask])
+        return out
 
     domain_min = max(dist_0.domain().min, dist_1.domain().min)
     domain_max = min(dist_0.domain().max, dist_1.domain().max)
+    x = numpy.linspace(domain_min, domain_max, 500)
+    y = integrand(x, dist_0.pdf)
+    z = integrand(x, dist_1.pdf)
 
-    kl_p, _ = quad(lambda x: integrand(x, dist_0.pdf), domain_min, domain_max)
-    kl_q, _ = quad(lambda x: integrand(x, dist_1.pdf), domain_min, domain_max)
+    kl_p = numpy.trapz(y, x)
+    kl_q = numpy.trapz(z, x)
+
     return 0.5 * (kl_p + kl_q)
 
 
