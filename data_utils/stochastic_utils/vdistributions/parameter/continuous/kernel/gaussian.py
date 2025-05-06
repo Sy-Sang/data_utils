@@ -61,7 +61,10 @@ class GaussianKernelMixDistribution(AbstractDistribution):
         for k in self.kernels:
             d.append([k.mu, k.sigma])
         d = numpy.asarray(d)
-        return d[numpy.argsort(d[:, sort_index])]
+        if sort_index is None:
+            return d
+        else:
+            return d[numpy.argsort(d[:, sort_index])]
 
     def pdf(self, x, *args, **kwargs):
         x = numpy.asarray(x)
@@ -74,6 +77,63 @@ class GaussianKernelMixDistribution(AbstractDistribution):
         m = numpy.stack([k.cdf(x) for k in self.kernels], axis=0)
         r = numpy.sum(m, axis=0) / len(self.kernels)
         return r
+
+    def ppf(self, x, *args, **kwargs):
+        x = numpy.atleast_1d(x)
+        result = self.ppf_inter(x)
+        return numpy.clip(result, self.domain_min, self.domain_max)
+
+
+class GaussianKernelWeightedMixDistribution(AbstractDistribution):
+
+    def __init__(self, *args):
+        super().__init__()
+        self.args = args
+        self.kernels = []
+        self.weights = []
+
+        for i in args:
+            mu, sigma, weight = i
+            self.kernels.append(NormalDistribution(mu, sigma))
+            self.weights.append(weight)
+
+        self.weights = numpy.asarray(self.weights, dtype=float)
+        weight_sum = numpy.sum(self.weights)
+        if weight_sum == 0:
+            raise ValueError("Sum of weights must be > 0")
+        self.weights /= weight_sum  # 归一化
+
+        self.domain_min = self.kernels[0].domain().min
+        self.domain_max = self.kernels[-1].domain().max
+
+        x_grid = numpy.linspace(self.domain_min, self.domain_max, 1000)
+        cdf_vals = self.cdf(x_grid)
+        self.ppf_inter = interp1d(cdf_vals, x_grid, bounds_error=False, fill_value=(x_grid[0], x_grid[-1]))
+
+    def __str__(self):
+        return str({self.__class__.__name__: self.kernels})
+
+    def __repr__(self):
+        return str({self.__class__.__name__: self.kernels})
+
+    def kernel_data(self, sort_index=0):
+        d = []
+        for k, w in zip(self.kernels, self.weights):
+            d.append([k.mu, k.sigma, w])
+        d = numpy.asarray(d)
+        return d[numpy.argsort(d[:, sort_index])]
+
+    def pdf(self, x, *args, **kwargs):
+        x = numpy.asarray(x)
+        m = numpy.stack([k.pdf(x) for k in self.kernels], axis=0)
+        weighted_sum = numpy.sum(self.weights[:, None] * m, axis=0)
+        return weighted_sum
+
+    def cdf(self, x, *args, **kwargs):
+        x = numpy.asarray(x)
+        m = numpy.stack([k.cdf(x) for k in self.kernels], axis=0)
+        weighted_sum = numpy.sum(self.weights[:, None] * m, axis=0)
+        return weighted_sum
 
     def ppf(self, x, *args, **kwargs):
         x = numpy.atleast_1d(x)
