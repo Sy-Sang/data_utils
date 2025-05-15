@@ -67,21 +67,22 @@ class GaussianKernelMixDistribution(AbstractDistribution):
             return d[numpy.argsort(d[:, sort_index])]
 
     def pdf(self, x, *args, **kwargs):
-        x = numpy.asarray(x)
+        x = numpy.atleast_1d(x)
         m = numpy.stack([k.pdf(x) for k in self.kernels], axis=0)
         r = numpy.sum(m, axis=0) / len(self.kernels)
-        return r
+        return r if r.shape != (1,) else r[0]
 
     def cdf(self, x, *args, **kwargs):
-        x = numpy.asarray(x)
+        x = numpy.atleast_1d(x)
         m = numpy.stack([k.cdf(x) for k in self.kernels], axis=0)
         r = numpy.sum(m, axis=0) / len(self.kernels)
-        return r
+        return r if r.shape != (1,) else r[0]
 
     def ppf(self, x, *args, **kwargs):
         x = numpy.atleast_1d(x)
         result = self.ppf_inter(x)
-        return numpy.clip(result, self.domain_min, self.domain_max)
+        r = numpy.clip(result, self.domain_min, self.domain_max)
+        return r if r.shape != (1,) else r[0]
 
 
 class GaussianKernelWeightedMixDistribution(AbstractDistribution):
@@ -124,23 +125,25 @@ class GaussianKernelWeightedMixDistribution(AbstractDistribution):
         return d[numpy.argsort(d[:, sort_index])]
 
     def pdf(self, x, *args, **kwargs):
-        x = numpy.asarray(x)
+        x = numpy.atleast_1d(x)
         m = numpy.stack([k.pdf(x) for k in self.kernels], axis=0)
         weighted_sum = numpy.sum(self.weights[:, None] * m, axis=0)
-        return weighted_sum
+        return weighted_sum if weighted_sum.shape != (1,) else weighted_sum[0]
 
     def cdf(self, x, *args, **kwargs):
-        x = numpy.asarray(x)
+        x = numpy.atleast_1d(x)
         m = numpy.stack([k.cdf(x) for k in self.kernels], axis=0)
         weighted_sum = numpy.sum(self.weights[:, None] * m, axis=0)
-        return weighted_sum
+        return weighted_sum if weighted_sum.shape != (1,) else weighted_sum[0]
 
     def ppf(self, x, *args, **kwargs):
         x = numpy.atleast_1d(x)
         result = self.ppf_inter(x)
-        return numpy.clip(result, self.domain_min, self.domain_max)
+        cliped_result = numpy.clip(result, self.domain_min, self.domain_max)
+        return cliped_result if cliped_result.shape != (1,) else cliped_result[0]
 
 
 if __name__ == "__main__":
-    gkmd = GaussianKernelMixDistribution((0, 0.1))
-    print(gkmd.rvf(100))
+    gkmd = GaussianKernelWeightedMixDistribution((0, 0.1, 1), (0, 0.1, 1))
+    # print(gkmd.rvf(100))
+    print(gkmd.ppf(0.1))
