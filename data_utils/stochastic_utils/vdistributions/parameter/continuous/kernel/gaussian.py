@@ -142,6 +142,8 @@ class GaussianKernelWeightedMixDistribution(AbstractDistribution):
         cliped_result = numpy.clip(result, self.domain_min, self.domain_max)
         return cliped_result if cliped_result.shape != (1,) else cliped_result[0]
 
+def divergenced_gaussian_kernel_mix_distribution(dist: GaussianKernelMixDistribution, kl_divergence_value:float):
+
 
 if __name__ == "__main__":
     gkmd = GaussianKernelWeightedMixDistribution((0, 0.1, 1), (0, 0.1, 1))
