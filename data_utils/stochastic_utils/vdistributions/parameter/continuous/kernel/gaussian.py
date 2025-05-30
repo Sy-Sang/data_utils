@@ -39,6 +39,9 @@ from scipy.optimize import minimize
 class KernelMixDistribution(AbstractDistribution):
     """核混合分布"""
 
+    def kernel_data(self, *args, **kwargs) -> numpy.ndarray:
+        pass
+
 
 class GaussianKernelMixDistribution(KernelMixDistribution):
 
@@ -123,14 +126,17 @@ class WeightedGaussianKernelMixDistribution(KernelMixDistribution):
     def __repr__(self):
         return str({self.__class__.__name__: self.kernels, "weight": self.weights})
 
-    def kernel_weight_data(self, sort_index=0):
+    def kernel_weight_data(self, sort_index: int = None):
         d = []
         for k, w in zip(self.kernels, self.weights):
             d.append([k.mu, k.sigma, w])
         d = numpy.asarray(d)
-        return d[numpy.argsort(d[:, sort_index])]
+        if sort_index is None:
+            return d
+        else:
+            return d[numpy.argsort(d[:, sort_index])]
 
-    def kernel_data(self, sort_index=0):
+    def kernel_data(self, sort_index: int = None):
         d = []
         for k in self.kernels:
             d.append([k.mu, k.sigma])
@@ -158,6 +164,11 @@ class WeightedGaussianKernelMixDistribution(KernelMixDistribution):
         cliped_result = numpy.clip(result, self.domain_min, self.domain_max)
         return cliped_result if cliped_result.shape != (1,) else cliped_result[0]
 
+    def add_kernel(self, *new_kernels):
+        this_kernels = self.kernel_weight_data(sort_index=None)
+        all_kernels = numpy.concatenate((this_kernels, numpy.asarray(new_kernels)))
+        return type(self)(*all_kernels)
+
 
 def divergenced_gaussian_kernel_mix_distribution(
         dist: KernelMixDistribution,
@@ -173,11 +184,10 @@ def divergenced_gaussian_kernel_mix_distribution(
         return (kl - numpy.clip(kl_divergence_value, 0, 0.6931)) ** 2
 
     kernels = dist.kernel_data()
-    # kernels = numpy.column_stack((kernels, [1] * len(kernels)))
-    if kernel_num is None:
-        additional_kernel_num = 0
-    else:
-        additional_kernel_num = int(numpy.clip(kernel_num, 1, numpy.inf)) - len(kernels)
+    # kernels = numpy.asarray([[0, 1]] * len(dist.kernel_data()))
+    kernel_num = int(numpy.clip(kernel_num, 1, numpy.inf)) if kernel_num is not None else len(kernels)
+
+    additional_kernel_num = kernel_num - len(kernels)
 
     if additional_kernel_num == 0:
         additional_kernel = numpy.asarray([])
@@ -193,7 +203,7 @@ def divergenced_gaussian_kernel_mix_distribution(
     bound_list = []
     for _ in range(kernel_num):
         bound_list.append((None, None))
-        bound_list.append((0.1, None))
+        bound_list.append((1e-3, None))
         # bound_list.append((0, 1))
 
     optimize_kernels = minimize(
@@ -223,10 +233,10 @@ def divergenced_weight_kernel_mix_distribution(
     kernels = dist.kernel_data()
     kernels = numpy.column_stack((kernels, numpy.random.uniform(0, 1, len(kernels))))
 
-    if kernel_num is None:
-        additional_kernel_num = 0
-    else:
-        additional_kernel_num = int(numpy.clip(kernel_num, 1, numpy.inf)) - len(kernels)
+    # kernels = numpy.asarray([[0, 1, 1]] * len(dist.kernel_data()))
+    kernel_num = int(numpy.clip(kernel_num, 1, numpy.inf)) if kernel_num is not None else len(kernels)
+
+    additional_kernel_num = kernel_num - len(kernels)
 
     if additional_kernel_num == 0:
         additional_kernel = numpy.asarray([])
@@ -242,7 +252,7 @@ def divergenced_weight_kernel_mix_distribution(
     bound_list = []
     for _ in range(kernel_num):
         bound_list.append((None, None))
-        bound_list.append((0.1, None))
+        bound_list.append((1e-3, None))
         bound_list.append((0, 1))
 
     optimize_kernels = minimize(
@@ -262,8 +272,8 @@ if __name__ == "__main__":
     # gkmd = GaussianKernelWeightedMixDistribution((0, 0.1, 1), (0, 0.1, 1))
     # # print(gkmd.rvf(100))
     # print(gkmd.ppf(0.1))
-    dist = WeightedGaussianKernelMixDistribution([0, 1, 1], [1, 2, 1], [2, 1, 1])
-    new_dist = divergenced_weight_kernel_mix_distribution(dist, 0.01, 4)
+    dist = WeightedGaussianKernelMixDistribution([0, 1, 1])
+    new_dist = divergenced_weight_kernel_mix_distribution(dist, 0.3, None)
     print(
         js_divergence_continuous(dist, new_dist)
     )

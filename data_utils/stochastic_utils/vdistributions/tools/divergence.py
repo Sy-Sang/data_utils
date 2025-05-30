@@ -90,6 +90,16 @@ def js_divergence_continuous(dist_0, dist_1):
     return 0.5 * (kl_p + kl_q)
 
 
+def tv_divergence(dist_0: AbstractDistribution, dist_1: AbstractDistribution):
+    domain_min = min(dist_0.domain().min, dist_1.domain().min)
+    domain_max = max(dist_0.domain().max, dist_1.domain().max)
+    x = numpy.linspace(domain_min, domain_max, 500)
+    z = numpy.trapz(
+        numpy.abs(dist_0.pdf(x) - dist_1.pdf(x)), x
+    )
+    return 0.5 * z
+
+
 if __name__ == "__main__":
     from data_utils.stochastic_utils.vdistributions.parameter.continuous.basic import NormalDistribution
 
