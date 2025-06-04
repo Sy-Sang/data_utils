@@ -115,12 +115,21 @@ class WeightedGaussianKernelMixDistribution(AbstractDistribution):
         all_kernels = numpy.concatenate((this_kernels, numpy.asarray(new_kernels)))
         return type(self)(*all_kernels)
 
-    def tv_divergence_modify(self, js: float, dist: Self = None):
+    def mean(self):
+        return numpy.sum(self.kernel_data(None)[:, 0] * self.weights)
+
+    def variance(self):
+        kd = self.kernel_data(None)
+        return numpy.sum(
+            self.weights * (kd[:, 1] ** 2 + (kd[:, 0] - self.mean()) ** 2)
+        )
+
+    def tv_divergence_modify(self, target_tv_divergence: float, dist: Self = None):
         def target_function(x):
             x = numpy.asarray(x).reshape(-1, 3)
             new_dist = type(self)(*x)
             new_js = tv_divergence(self, new_dist)
-            return (new_js - numpy.clip(js, 0, 1)) ** 2
+            return (new_js - numpy.clip(target_tv_divergence, 0, 1)) ** 2
 
         if dist is None:
             dist = self.clone()
@@ -164,3 +173,5 @@ if __name__ == "__main__":
     _, pdf, _ = new_dist.curves(1000)
     plt.plot(pdf[:, 0], pdf[:, 1])
     plt.show()
+    print(dist.mean())
+    print(new_dist.mean())
