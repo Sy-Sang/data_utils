@@ -124,6 +124,9 @@ class WeightedGaussianKernelMixDistribution(AbstractDistribution):
             self.weights * (kd[:, 1] ** 2 + (kd[:, 0] - self.mean()) ** 2)
         )
 
+    def std(self):
+        return self.variance() ** 0.5
+
     def tv_divergence_modify(self, target_tv_divergence: float, dist: Self = None):
         def target_function(x):
             x = numpy.asarray(x).reshape(-1, 3)
