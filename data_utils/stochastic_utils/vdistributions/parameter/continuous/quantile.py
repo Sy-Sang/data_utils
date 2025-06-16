@@ -29,6 +29,7 @@ from data_utils.stochastic_utils.vdistributions.tools.divergence import tv_diver
 import numpy
 from scipy.interpolate import interp1d
 from scipy.optimize import minimize
+from scipy.signal import savgol_filter
 
 
 # 代码块
@@ -48,6 +49,8 @@ class CDFDefinedDistribution(ParameterDistribution):
 
         x_grid = numpy.linspace(self.x[0], self.x[-1], 1000)
         pdf_values = numpy.gradient(self.cdf_interp(x_grid), x_grid)
+        # pdf_values = numpy.maximum(numpy.gradient(self.cdf_interp(x_grid), x_grid), 0)
+        # pdf_values = savgol_filter(pdf_values, 15, 3)
         self.pdf_interp = interp1d(x_grid, pdf_values, bounds_error=False, fill_value=0.0)
 
     def cdf(self, x):
@@ -80,30 +83,30 @@ class CDFDefinedDistribution(ParameterDistribution):
                 ))
         return xl + yl
 
-    def tv_divergence_modify(self, target_tv_divergence: float):
-        def target_function(dy):
-            dy = numpy.asarray(dy)
-            new_dist = type(self)(x=self.x, y=self.y * dy)
-            new_js = tv_divergence(self, new_dist)
-            return (new_js - numpy.clip(target_tv_divergence, 0, 1)) ** 2
-
-        # dist_kernels = numpy.column_stack((dist.kernel_data(), dist.weights))
-        # bound_list = []
-        # for _ in range(len(dist_kernels)):
-        #     bound_list.append((None, None))
-        #     bound_list.append((1e-3, None))
-        #     bound_list.append((float_eps, None))
-        #
-        optimize_dy = minimize(
-            target_function,
-            numpy.ones(len(self.y)),
-            # bounds=bound_list,
-            # method="L-BFGS-B",
-            options={'maxiter': 100, 'disp': False}
-        )
-        # optimize_kernels_data = numpy.asarray(optimize_kernels.x).reshape(-1, 3)
-        res = type(self)(x=self.x, y=self.y * optimize_dy.x)
-        return res, tv_divergence(self, res)
+    # def tv_divergence_modify(self, target_tv_divergence: float):
+    #     def target_function(dy):
+    #         dy = numpy.asarray(dy)
+    #         new_dist = type(self)(x=self.x, y=self.y * dy)
+    #         new_js = tv_divergence(self, new_dist)
+    #         return (new_js - numpy.clip(target_tv_divergence, 0, 1)) ** 2
+    #
+    #     # dist_kernels = numpy.column_stack((dist.kernel_data(), dist.weights))
+    #     # bound_list = []
+    #     # for _ in range(len(dist_kernels)):
+    #     #     bound_list.append((None, None))
+    #     #     bound_list.append((1e-3, None))
+    #     #     bound_list.append((float_eps, None))
+    #     #
+    #     optimize_dy = minimize(
+    #         target_function,
+    #         numpy.ones(len(self.y)),
+    #         # bounds=bound_list,
+    #         # method="L-BFGS-B",
+    #         options={'maxiter': 100, 'disp': False}
+    #     )
+    #     # optimize_kernels_data = numpy.asarray(optimize_kernels.x).reshape(-1, 3)
+    #     res = type(self)(x=self.x, y=self.y * optimize_dy.x)
+    #     return res, tv_divergence(self, res)
 
 
 if __name__ == "__main__":
@@ -117,8 +120,7 @@ if __name__ == "__main__":
     nd = NormalDistribution(1, 1)
     ppf, pdf, cdf = nd.curves(100)
     pyplot.plot(pdf[:, 0], pdf[:, 1])
-    cdd, tv = CDFDefinedDistribution(x=cdf[:, 0], y=cdf[:, 1]).tv_divergence_modify(0.5)
+    cdd = CDFDefinedDistribution(x=cdf[:, 0], y=cdf[:, 1])
     ppf, pdf, cdf = cdd.curves(100)
     pyplot.plot(pdf[:, 0], pdf[:, 1])
     pyplot.show()
-    print(tv)
