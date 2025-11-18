@@ -52,7 +52,8 @@ def crps(dist: AbstractDistribution, value):
     """Continuous Ranked Probability Score"""
 
     def f(x):
-        return (dist.cdf(x) - numpy.where(x >= value, 1, 0)) ** 2
+        x = float(x)
+        return (dist.cdf(x) - (1 if x >= value else 0)) ** 2
 
     domain_min, domain_max = dist.domain()
     result, _ = quad(f, domain_min, domain_max)

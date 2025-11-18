@@ -146,10 +146,10 @@ class ABCDistribution(ABC):
         x_array = numpy.random.uniform(0 + numpy.finfo(float).eps, 1, size=n)
         random_array = self.ppf(x_array)
         rv = random_array.y[:num]
-        if num == 1:
-            return rv[0]
-        else:
-            return rv
+        return rv
+
+    def random_sample(self) -> float:
+        return numpy.asarray(self.rvf(1), dtype=float)[0]
 
     def limited_rvf(self, domain_list: Union[list, tuple] = (0, 1), num: int = 100) -> Union[numpy.ndarray, float]:
         """
